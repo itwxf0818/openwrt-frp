@@ -122,7 +122,7 @@ uci commit frpc
 /etc/init.d/frpc restart
 ```
 
-服务端对应 `frps`。切回 master 默认方式时，将 `uci_format` 改为 `toml`，并同步处理 INI 专用附加配置。不能将 INI 内容直接拼接到 TOML。
+服务端对应 `frps`。该模式读取旧版 UCI 字段，不覆盖 master 的全部新增功能。切回 master 默认方式时，将 `uci_format` 改为 `toml`，并同步处理 INI 专用附加配置。不能将 INI 内容直接拼接到 TOML。
 
 </details>
 
