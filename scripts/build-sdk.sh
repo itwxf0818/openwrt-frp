@@ -5,6 +5,12 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 distribution=${1:?distribution required}
 target=${2:?target required}
 mkdir -p "$repo/work/sdk-download" "$repo/work/sdk" "$repo/dist"
+# Only expose package inputs to the feed scanner. Linking the whole repository
+# would make work/sdk/feeds/frp_custom point back into its own parent tree.
+feed_root=$(mktemp -d "$repo/work/frp-feed.XXXXXX")
+mkdir -p "$feed_root/frp"
+cp "$repo/Makefile" "$feed_root/frp/Makefile"
+cp -R "$repo/files" "$feed_root/frp/files"
 python3 "$repo/scripts/download-sdk.py" "$distribution" "$target" "$repo/work/sdk-download"
 archives=("$repo"/work/sdk-download/*-sdk-*.tar.*)
 [[ ${#archives[@]} == 1 ]]
@@ -15,10 +21,10 @@ cd "$repo/work/sdk"
 ./scripts/feeds install -a
 feed_config=feeds.conf.default
 [[ ! -f feeds.conf ]] || feed_config=feeds.conf
-printf '\nsrc-link frp_custom %s\n' "$repo" >> "$feed_config"
+printf '\nsrc-link frp_custom %s\n' "$feed_root" >> "$feed_config"
 ./scripts/feeds update frp_custom
 ./scripts/feeds install -f -p frp_custom frp
-test "$(readlink -f package/feeds/frp_custom/frp)" = "$repo"
+test "$(readlink -f package/feeds/frp_custom/frp)" = "$feed_root/frp"
 cat >> .config <<'EOF'
 CONFIG_ALL_NONSHARED=n
 CONFIG_ALL_KMODS=n
