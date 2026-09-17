@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/immortalwrt/packages",
+  "commit": "8509f551edb7beb4a6324afca4d84b2bea404b66",
+  "files": {
+    "frpc": {
+      "path": "net/frp/files/frpc.init",
+      "sha256": "dc7e295980e096ad1bf36f5c5c889f19071f7cb4e04f6e44f82e4c9a610b5ca2"
+    },
+    "frps": {
+      "path": "net/frp/files/frps.init",
+      "sha256": "38e4abdc5fa59957978676e100c95b626fa9a78037f8e5f7b15e16a35dce4baa"
+    }
+  }
+}

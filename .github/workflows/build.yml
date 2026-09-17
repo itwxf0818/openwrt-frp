@@ -27,16 +27,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: candidate
-          path: .
+          path: frp
       - name: Static checks and updater regression tests
         run: |
           python3 scripts/check.py
           python3 -m unittest discover -s tests -v
           bash -n scripts/build-sdk.sh
-          sh -n files/frpc.init
-          sh -n files/frps.init
+          sh -n frp/files/frpc.init
+          sh -n frp/files/frps.init
+          for script in frp/files/*.sh; do sh -n "$script"; done
           bash tests/test_init.sh
-          shellcheck -s sh -e SC1091,SC2034 files/*.init
+          bash tests/test_install_feed.sh
+          bash tests/test_feed_layout.sh
+          shellcheck -s sh -e SC1091,SC2034 frp/files/*.init frp/files/*.sh
           shellcheck scripts/*.sh tests/*.sh
       - name: Verify exact upstream archive
         run: python3 scripts/fetch-source.py
@@ -54,7 +57,9 @@ jobs:
           go build -trimpath -tags noweb -ldflags '-s -w' -o ../bin/frpc ./cmd/frpc
           go build -trimpath -tags noweb -ldflags '-s -w' -o ../bin/frps ./cmd/frps
           cd ../..
+          bash tests/test_init.sh work/bin
           python3 scripts/smoke.py work/bin
+          python3 scripts/smoke.py work/bin --format ini
       - name: Cross-compile common router CPU families
         env:
           CGO_ENABLED: '0'
@@ -78,12 +83,19 @@ jobs:
           - distribution: immortalwrt
             target: x86/64
             name: immortalwrt-x86_64
+            release: snapshot
           - distribution: immortalwrt
             target: mediatek/filogic
             name: immortalwrt-aarch64
+            release: snapshot
           - distribution: openwrt
             target: x86/64
             name: openwrt-x86_64
+            release: snapshot
+          - distribution: immortalwrt
+            target: x86/64
+            name: immortalwrt-25.12.2-x86_64
+            release: '25.12.2'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,7 +104,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: candidate
-          path: .
+          path: frp
       - name: Install SDK prerequisites
         run: |
           sudo apt-get update
@@ -101,7 +113,8 @@ jobs:
         env:
           DISTRIBUTION: ${{ matrix.distribution }}
           TARGET: ${{ matrix.target }}
-        run: bash scripts/build-sdk.sh "$DISTRIBUTION" "$TARGET"
+          RELEASE: ${{ matrix.release }}
+        run: bash scripts/build-sdk.sh "$DISTRIBUTION" "$TARGET" "$RELEASE"
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.name }}

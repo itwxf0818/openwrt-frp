@@ -34,7 +34,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: candidate
-          path: Makefile
+          path: frp/Makefile
           retention-days: 7
 
   validate:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: candidate
-          path: .
+          path: frp
       - name: Commit only after every validation passed
         env:
           VERSION: ${{ needs.check.outputs.version }}
@@ -72,8 +72,9 @@ jobs:
           git fetch origin "$BRANCH"
           test "$(git rev-parse FETCH_HEAD)" = "$BASE" || { echo 'Default branch changed during validation. Rerun Update FRP.'; exit 1; }
           python3 scripts/check.py
+          python3 scripts/upstream.py --sync-readme
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Makefile
+          git add frp/Makefile README.md
           git commit -m "chore: update FRP to $VERSION"
           git push origin "HEAD:refs/heads/$BRANCH"

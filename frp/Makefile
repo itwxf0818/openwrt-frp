@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=frp
 PKG_VERSION:=0.71.0
-PKG_RELEASE:=1
+PKG_RELEASE:=3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/fatedier/frp/tar.gz/v$(PKG_VERSION)?
@@ -36,37 +36,45 @@ endef
 
 define Package/frpc
   $(call Package/frp/default)
-  TITLE:=FRP client (native TOML, without web assets)
+  USERID:=frpc:frpc
+  TITLE:=FRP client (UCI/INI/TOML, without web assets)
 endef
 
 define Package/frps
   $(call Package/frp/default)
-  TITLE:=FRP server (native TOML, without web assets)
+  USERID:=frps:frps
+  TITLE:=FRP server (UCI/INI/TOML, without web assets)
 endef
 
 define Package/frpc/description
-  Fast reverse proxy client. Native TOML configuration and procd supervision.
+  Fast reverse proxy client. Legacy UCI, native INI/TOML configuration and procd supervision.
   Services are disabled until explicitly configured and enabled via UCI.
 endef
 
 define Package/frps/description
-  Fast reverse proxy server. Native TOML configuration and procd supervision.
+  Fast reverse proxy server. Legacy UCI, native INI/TOML configuration and procd supervision.
   Services are disabled until explicitly configured and enabled via UCI.
 endef
 
 define Package/frpc/conffiles
 /etc/config/frpc
 /etc/frp/frpc.toml
+/etc/frp/frpc.ini
+/etc/frp/frpc.d/
 endef
 
 define Package/frps/conffiles
 /etc/config/frps
 /etc/frp/frps.toml
+/etc/frp/frps.ini
+/etc/frp/frps.d/
 endef
 
 define Package/frp/install
-	$(INSTALL_DIR) $(1)/usr/bin $(1)/etc/init.d $(1)/etc/config $(1)/etc/frp
+	$(INSTALL_DIR) $(1)/usr/bin $(1)/etc/init.d $(1)/etc/config $(1)/etc/frp/$(2).d $(1)/usr/libexec
 	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/$(2) $(1)/usr/bin/$(2)
+	$(INSTALL_DATA) ./files/$(2)-master.sh $(1)/usr/libexec/$(2)-master.sh
+	$(INSTALL_DATA) ./files/frp-service.sh $(1)/usr/libexec/$(2)-service.sh
 	$(INSTALL_BIN) ./files/$(2).init $(1)/etc/init.d/$(2)
 	$(INSTALL_CONF) ./files/$(2).config $(1)/etc/config/$(2)
 	$(INSTALL_CONF) ./files/$(2).toml $(1)/etc/frp/$(2).toml
