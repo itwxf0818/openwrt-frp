@@ -1,0 +1,10 @@
+# Loopback-only until you configure an appropriate listening address.
+bindAddr = "127.0.0.1"
+bindPort = 7000
+proxyBindAddr = "127.0.0.1"
+auth.method = "token"
+auth.token = "CHANGE_ME_WITH_A_LONG_RANDOM_TOKEN"
+transport.tls.force = true
+allowPorts = [{ single = 6000 }]
+log.to = "console"
+log.level = "info"

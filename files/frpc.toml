@@ -1,0 +1,16 @@
+# Replace the address and token, then enable the service using UCI.
+serverAddr = "127.0.0.1"
+serverPort = 7000
+auth.method = "token"
+auth.token = "CHANGE_ME_WITH_A_LONG_RANDOM_TOKEN"
+transport.tls.enable = true
+log.to = "console"
+log.level = "info"
+
+# Add only the services you intend to expose. Example:
+# [[proxies]]
+# name = "my-web"
+# type = "tcp"
+# localIP = "192.168.1.100"
+# localPort = 8080
+# remotePort = 6000

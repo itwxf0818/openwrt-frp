@@ -1,0 +1,79 @@
+name: Update FRP
+
+on:
+  schedule:
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-update
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      changed: ${{ steps.upstream.outputs.changed }}
+      version: ${{ steps.upstream.outputs.version }}
+      base: ${{ steps.base.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/upstream.py
+      - if: steps.upstream.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate
+          path: Makefile
+          retention-days: 7
+
+  validate:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      candidate: true
+    permissions:
+      contents: read
+
+  publish:
+    needs: [check, validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Never publish an update launched from a non-default branch.
+    if: github.ref_name == github.event.repository.default_branch
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.base }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: candidate
+          path: .
+      - name: Commit only after every validation passed
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+          BASE: ${{ needs.check.outputs.base }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$BRANCH"
+          test "$(git rev-parse FETCH_HEAD)" = "$BASE" || { echo 'Default branch changed during validation. Rerun Update FRP.'; exit 1; }
+          python3 scripts/check.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Makefile
+          git commit -m "chore: update FRP to $VERSION"
+          git push origin "HEAD:refs/heads/$BRANCH"

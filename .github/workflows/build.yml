@@ -1,0 +1,110 @@
+name: Build and validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      candidate:
+        type: boolean
+        default: false
+        description: Use the candidate Makefile artifact from this workflow run
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - if: inputs.candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: candidate
+          path: .
+      - name: Static checks and updater regression tests
+        run: |
+          python3 scripts/check.py
+          python3 -m unittest discover -s tests -v
+          bash -n scripts/build-sdk.sh
+          sh -n files/frpc.init
+          sh -n files/frps.init
+          bash tests/test_init.sh
+          shellcheck -s sh -e SC1091,SC2034 files/*.init
+          shellcheck scripts/*.sh tests/*.sh
+      - name: Verify exact upstream archive
+        run: python3 scripts/fetch-source.py
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: work/source/go.mod
+          cache: false
+      - name: Build and exercise the native binaries
+        env:
+          CGO_ENABLED: '0'
+          GOTOOLCHAIN: local
+        run: |
+          mkdir -p work/bin
+          cd work/source
+          go build -trimpath -tags noweb -ldflags '-s -w' -o ../bin/frpc ./cmd/frpc
+          go build -trimpath -tags noweb -ldflags '-s -w' -o ../bin/frps ./cmd/frps
+          cd ../..
+          python3 scripts/smoke.py work/bin
+      - name: Cross-compile common router CPU families
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOTOOLCHAIN: local
+        run: |
+          cd work/source
+          for arch in amd64 arm64 arm mipsle; do
+            mkdir -p ../cross/$arch
+            GOARCH=$arch GOARM=7 GOMIPS=softfloat go build -trimpath -tags noweb -ldflags '-s -w' -o ../cross/$arch/ ./cmd/frpc ./cmd/frps
+          done
+
+  sdk:
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distribution: immortalwrt
+            target: x86/64
+            name: immortalwrt-x86_64
+          - distribution: immortalwrt
+            target: mediatek/filogic
+            name: immortalwrt-aarch64
+          - distribution: openwrt
+            target: x86/64
+            name: openwrt-x86_64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - if: inputs.candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: candidate
+          path: .
+      - name: Install SDK prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3 python3-setuptools rsync swig unzip zlib1g-dev file wget curl zstd
+      - name: Build both packages with the official SDK
+        env:
+          DISTRIBUTION: ${{ matrix.distribution }}
+          TARGET: ${{ matrix.target }}
+        run: bash scripts/build-sdk.sh "$DISTRIBUTION" "$TARGET"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ matrix.name }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
