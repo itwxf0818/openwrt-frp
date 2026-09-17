@@ -4,6 +4,7 @@ set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
 distribution=${1:?distribution required}
 target=${2:?target required}
+release=${3:-snapshot}
 mkdir -p "$repo/work/sdk-download" "$repo/work/sdk" "$repo/dist"
 # Only expose package inputs to the feed scanner. Linking the whole repository
 # would make work/sdk/feeds/frp_custom point back into its own parent tree.
@@ -11,7 +12,7 @@ feed_root=$(mktemp -d "$repo/work/frp-feed.XXXXXX")
 mkdir -p "$feed_root/frp"
 cp "$repo/Makefile" "$feed_root/frp/Makefile"
 cp -R "$repo/files" "$feed_root/frp/files"
-python3 "$repo/scripts/download-sdk.py" "$distribution" "$target" "$repo/work/sdk-download"
+python3 "$repo/scripts/download-sdk.py" "$distribution" "$target" "$repo/work/sdk-download" --release "$release"
 archives=("$repo"/work/sdk-download/*-sdk-*.tar.*)
 [[ ${#archives[@]} == 1 ]]
 tar -xf "${archives[0]}" -C "$repo/work/sdk" --strip-components=1

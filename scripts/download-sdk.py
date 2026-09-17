@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download an official snapshot SDK, checking the HTTPS SHA256 manifest."""
+"""Download an official SDK, checking the HTTPS SHA256 manifest."""
 import argparse
 import json
 from pathlib import Path
@@ -10,8 +10,12 @@ p = argparse.ArgumentParser()
 p.add_argument("distribution", choices=["openwrt", "immortalwrt"])
 p.add_argument("target", choices=["x86/64", "mediatek/filogic"])
 p.add_argument("output", type=Path)
+p.add_argument("--release", default="snapshot")
 a = p.parse_args()
-base = f"https://downloads.{a.distribution}.org/snapshots/targets/{a.target}"
+if a.release != "snapshot" and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", a.release):
+    p.error("release must be snapshot or a stable version such as 25.12.2")
+channel = "snapshots" if a.release == "snapshot" else f"releases/{a.release}"
+base = f"https://downloads.{a.distribution}.org/{channel}/targets/{a.target}"
 manifest = fetch(base + "/sha256sums").decode()
 matches = re.findall(rf"^([a-f0-9]{{64}})\s+\*?({a.distribution}-sdk-[^/\s]+\.tar\.(?:zst|xz))$", manifest, re.M)
 if len(matches) != 1:

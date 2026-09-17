@@ -115,7 +115,7 @@ FRP 0.71.0 仍能读取 INI，但上游已将它列为弃用格式；新功能�
 
 ### 官方 LuCI 的变化
 
-核对日期：2026-09-17。ImmortalWrt `openwrt-23.05` 分支仍采用 **UCI → INI**；`master` 的 LuCI 和启动脚本已采用 **UCI → TOML**。更新本 feed 不会自动更新 LuCI，也不能以开发分支的变化推断某个固件版本已经更新。
+核对日期：2026-09-17。ImmortalWrt **`openwrt-25.12` 的官方 LuCI 和启动脚本仍采用 UCI → INI**，本阶段以此为兼容基准；`openwrt-23.05` 的启动脚本与其一致。`master` 的 LuCI 和启动脚本已采用 **UCI → TOML**。更新本 feed 不会自动更新 LuCI，也不能以开发分支的变化推断某个固件版本已经更新。
 
 本阶段优先兼容旧版官方页面，保留 INI 运行方式。若使用 master 新 LuCI 的 TOML 专用功能，应使用与其配套的官方生成器；本包当前可通过完整 TOML 文件使用上游新功能。第三方同名 LuCI 插件可能使用不同配置结构，不能仅凭页面名称认定兼容。FRP 上游自身的网页面板与 OpenWrt LuCI 是不同组件。来源见[核对记录](docs/SOURCES.md#ini--luci-兼容基准)。
 

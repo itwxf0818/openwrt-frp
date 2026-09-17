@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-# Legacy UCI layout follows ImmortalWrt packages/openwrt-23.05 net/frp.
+# Legacy UCI layout follows ImmortalWrt packages/openwrt-25.12 net/frp.
 # New implementation: preserve conf/init sections, validate before procd starts,
 # and allow a complete upstream INI or TOML file without rewriting it.
 # BusyBox ash supports local variables.
-# shellcheck disable=SC3043,SC2329 # UCI invokes callbacks indirectly.
+# shellcheck disable=SC3043,SC2329,SC2317
+# UCI invokes callbacks indirectly (SC2317 on older ShellCheck versions).
 
 frp_error() {
 	logger -t "$NAME" "$*"
@@ -20,9 +21,9 @@ frp_readable() {
 		/*) ;;
 		*) frp_error 'configuration path must be absolute'; return 1 ;;
 	esac
-	[ -f "$1" ] && [ -r "$1" ] || {
+	if [ ! -f "$1" ] || [ ! -r "$1" ]; then
 		frp_error 'configuration file is missing or unreadable'; return 1
-	}
+	fi
 }
 
 frp_ini_section() {

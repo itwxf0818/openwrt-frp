@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2329 # UCI invokes fixture callbacks indirectly.
+# shellcheck disable=SC2329,SC2317
+# UCI invokes fixture callbacks indirectly.
 # Test the actual service helper with UCI/procd mocks and optional real binaries.
 set -eo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
