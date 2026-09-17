@@ -12,24 +12,6 @@ import upstream
 
 
 class Updates(unittest.TestCase):
-    def test_readme_version_follows_package_and_rejects_missing_marker(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            readme = root / "README.md"
-            original = "# FRP\n\n<!-- frp-version --> old version\n\nKeep these instructions.\n"
-            readme.write_text(original, encoding="utf-8")
-            with patch.object(upstream, "ROOT", root), patch.object(upstream, "metadata", return_value={"PKG_VERSION": "0.72.0", "PKG_RELEASE": "1"}):
-                upstream.sync_readme()
-                updated = readme.read_text(encoding="utf-8")
-                self.assertIn("**FRP 0.72.0**", updated)
-                self.assertIn("**0.72.0-r1**", updated)
-                self.assertTrue(updated.endswith("\n\nKeep these instructions.\n"))
-                for invalid in ("# No marker\n", "<!-- frp-version --> a\n<!-- frp-version --> b\n"):
-                    readme.write_text(invalid, encoding="utf-8")
-                    with self.assertRaises(ValueError):
-                        upstream.sync_readme()
-                    self.assertEqual(readme.read_text(encoding="utf-8"), invalid)
-
     def test_reject_unstable_and_injection(self):
         for tag in ["v0.72.0-rc1", "v0.72.0;echo bad", "0.72.0", "vmain"]:
             with self.assertRaises(ValueError):

@@ -110,27 +110,5 @@ def check_update():
             f.write(output)
 
 
-def sync_readme():
-    data = metadata()
-    version = data["PKG_VERSION"]
-    release = data["PKG_RELEASE"]
-    if not re.fullmatch(r"\d+", release):
-        raise ValueError("Invalid package release")
-    path = ROOT / "README.md"
-    original = path.read_text(encoding="utf-8")
-    line = f"<!-- frp-version --> 当前版本：**FRP {version}** · 软件包：**{version}-r{release}**"
-    updated, count = re.subn(r"^<!-- frp-version -->[^\n]*$", lambda _: line, original, flags=re.M)
-    if count != 1:
-        raise ValueError("Expected exactly one README version marker")
-    path.write_text(updated, encoding="utf-8", newline="\n")
-
-
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--sync-readme", action="store_true")
-    args = parser.parse_args()
-    if args.sync_readme:
-        sync_readme()
-    else:
-        check_update()
+    check_update()
