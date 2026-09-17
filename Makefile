@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=frp
 PKG_VERSION:=0.71.0
-PKG_RELEASE:=2
+PKG_RELEASE:=3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/fatedier/frp/tar.gz/v$(PKG_VERSION)?
@@ -73,6 +73,7 @@ endef
 define Package/frp/install
 	$(INSTALL_DIR) $(1)/usr/bin $(1)/etc/init.d $(1)/etc/config $(1)/etc/frp/$(2).d $(1)/usr/libexec
 	$(INSTALL_BIN) $(GO_PKG_BUILD_BIN_DIR)/$(2) $(1)/usr/bin/$(2)
+	$(INSTALL_DATA) ./files/$(2)-master.sh $(1)/usr/libexec/$(2)-master.sh
 	$(INSTALL_DATA) ./files/frp-service.sh $(1)/usr/libexec/$(2)-service.sh
 	$(INSTALL_BIN) ./files/$(2).init $(1)/etc/init.d/$(2)
 	$(INSTALL_CONF) ./files/$(2).config $(1)/etc/config/$(2)

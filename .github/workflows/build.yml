@@ -35,10 +35,10 @@ jobs:
           bash -n scripts/build-sdk.sh
           sh -n files/frpc.init
           sh -n files/frps.init
-          sh -n files/frp-service.sh
+          for script in files/*.sh; do sh -n "$script"; done
           bash tests/test_init.sh
           bash tests/test_install_feed.sh
-          shellcheck -s sh -e SC1091,SC2034 files/*.init files/frp-service.sh
+          shellcheck -s sh -e SC1091,SC2034 files/*.init files/*.sh
           shellcheck scripts/*.sh tests/*.sh
       - name: Verify exact upstream archive
         run: python3 scripts/fetch-source.py

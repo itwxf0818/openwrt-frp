@@ -86,7 +86,7 @@ frp_export() {
 	esac
 }
 
-start_service() {
+frp_compat_start() {
 	local init_cfg='' main_type enabled=1 config_file generated=''
 	local stdout=1 stderr=1 respawn=1 run_user='' run_group=''
 	local frp_failed=0 frp_emit=0 old_umask
@@ -179,4 +179,34 @@ service_triggers() {
 reload_service() {
 	stop
 	start
+}
+
+# Current master uses TOML generation. Legacy native files always remain usable.
+start_service() {
+	local init_cfg='' main_type config_file='' uci_format=toml enabled=1 token
+	reset_cb
+	config_load "$NAME" || return 1
+	config_foreach frp_find_init init
+	config_get main_type main TYPE
+	if [ "$main_type" = "$NAME" ]; then
+		frp_compat_start
+		return $?
+	fi
+	if [ -n "$init_cfg" ]; then
+		config_get_bool enabled "$init_cfg" enabled 1
+		config_get config_file "$init_cfg" config_file
+		config_get uci_format "$init_cfg" uci_format toml
+	fi
+	[ "$enabled" -eq 1 ] || return 0
+	if [ -n "$config_file" ] || [ "$uci_format" = ini ]; then
+		frp_compat_start
+		return $?
+	fi
+	[ "$uci_format" = toml ] || { frp_error 'uci_format must be ini or toml'; return 1; }
+	config_get token common token
+	[ "$token" != CHANGE_ME_WITH_A_LONG_RANDOM_TOKEN ] || {
+		frp_error 'replace the example token before enabling the service'; return 1
+	}
+	CONF_FILE="$FRP_RUNTIME/$NAME.toml"
+	frp_master_start
 }

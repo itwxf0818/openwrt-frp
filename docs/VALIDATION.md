@@ -2,6 +2,12 @@
 
 验证日期：2026-09-17。本文记录本地验证与 SDK 集成测试结果。后续提交的构建状态见 [GitHub Actions](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)。
 
+## 当前 master 适配（0.71.0-r3）
+
+默认采用官方 master UCI→TOML 逻辑，保留原生 INI/TOML 和显式旧 UCI→INI 模式。本地已验证客户端及服务端的现代字段映射、列表/映射参数、TLS、代理配置、缺失附加文件、无效端口，以及原有 INI 回归测试。生成的 TOML 通过真实 FRP 校验；最终 CI/SDK 结果待本次构建完成后记录。
+
+以下 r2 记录属于前一实现，不能作为 r3 新生成逻辑已通过构建或实机测试的证明。
+
 ## INI / ImmortalWrt 25.12 兼容更新（0.71.0-r2）
 
 对应最终代码提交 `2dac8d0c73e981ba5d6e996e5b563deebb8cbf85`，[完整构建 #35186153160](https://github.com/itwxf0818/openwrt-frp/actions/runs/35186153160) 已全部通过。

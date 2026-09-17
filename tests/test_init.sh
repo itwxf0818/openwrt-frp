@@ -65,6 +65,10 @@ procd_add_reload_trigger() { :; }
 # shellcheck disable=SC1091
 source "$repo/files/frp-service.sh"
 for NAME in frpc frps; do
+    # shellcheck disable=SC1090
+    source "$repo/files/$NAME-master.sh"
+    # shellcheck disable=SC1091
+    source "$repo/files/frp-service.sh"
     PROG="$tmp/frp-mock"
     FRP_RUNTIME="$tmp/runtime"
     real_binary=
@@ -101,6 +105,7 @@ EOF
     # Old official LuCI UCI layout: init, common and named/disabled proxies.
     cat > "$fixture" <<EOF
 config init service
+option uci_format ini
 option stdout 0
 option respawn 0
 list env 'FRP_TEST_ENV=test-value'
@@ -166,4 +171,66 @@ EOF
     grep -Fxq "command $PROG -c $tmp/last-good.ini" "$calls"
     grep -qx close "$calls"
     echo "PASS: $NAME native TOML/INI, legacy UCI, includes, disabled proxy, procd options, error handling"
+    # Current master default: UCI -> TOML, including modern list/map options.
+    cat > "$fixture" <<EOF
+config init service
+option stdout 0
+config conf common
+option token test-only-token
+option log_file console
+EOF
+    if [[ $NAME == frpc ]]; then
+        cat >> "$fixture" <<'EOF'
+option server_addr 127.0.0.1
+option server_port 7000
+option wire_protocol v1
+option tls_enable true
+list metadatas 'origin=master-test'
+config conf web
+option name master-web
+option type tcp
+option local_ip 127.0.0.1
+option local_port 8080
+option remote_port 6000
+EOF
+    else
+        cat >> "$fixture" <<'EOF'
+option bind_addr 127.0.0.1
+option bind_port 7000
+option tls_only true
+option allow_ports 6000-6010
+option max_ports_per_client 4
+EOF
+    fi
+    values=(); : > "$calls"
+    # Upstream ash code does not use errexit; use an explicit result check.
+    if ! start_service; then echo 'Master generator failed'; exit 1; fi
+    generated="$FRP_RUNTIME/$NAME.toml"
+    grep -Fxq 'auth.token = "test-only-token"' "$generated"
+    grep -Fxq 'open instance1' "$calls"
+    grep -Fxq "command $PROG -c $generated" "$calls"
+    if [[ $NAME == frpc ]]; then
+        grep -Fxq 'serverAddr = "127.0.0.1"' "$generated"
+        grep -Fxq 'transport.wireProtocol = "v1"' "$generated"
+        grep -Fxq 'metadatas."origin" = "master-test"' "$generated"
+        grep -Fxq 'name = "master-web"' "$generated"
+    else
+        grep -Fxq 'bindPort = 7000' "$generated"
+        grep -Fxq 'maxPortsPerClient = 4' "$generated"
+        grep -Fxq 'transport.tls.force = true' "$generated"
+    fi
+    # Invalid modern numeric values must not launch a process.
+    if [[ $NAME == frpc ]]; then key=server_port; else key=bind_port; fi
+    sed -i "s/option $key 7000/option $key invalid/" "$fixture"
+    values=(); : > "$calls"
+    if start_service; then echo 'Accepted invalid master config'; exit 1; fi
+    if grep -q '^open ' "$calls"; then exit 1; fi
+    sed -i "s/option $key invalid/option $key 7000/" "$fixture"
+    # Missing/foreign include paths must be fatal, not silently dropped.
+    sed -i "/config init service/a list conf_inc '/missing/include.toml'" "$fixture"
+    values=(); : > "$calls"
+    if start_service; then echo 'Ignored missing master include'; exit 1; fi
+    if grep -q '^open ' "$calls"; then exit 1; fi
+    echo "PASS: $NAME current master TOML mappings and failure handling"
+
 done

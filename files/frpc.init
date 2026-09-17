@@ -6,4 +6,5 @@ STOP=10
 NAME=frpc
 PROG=/usr/bin/frpc
 FRP_RUNTIME=/var/etc
+. /usr/libexec/frpc-master.sh
 . /usr/libexec/frpc-service.sh
