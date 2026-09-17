@@ -4,7 +4,7 @@
 
 面向 OpenWrt 与 ImmortalWrt 的 FRP 软件包源，用于在固件编译时替换内置旧版 `frpc` / `frps`，持续跟踪上游稳定版本。
 
-基于 [fatedier/frp](https://github.com/fatedier/frp)，采用原生 TOML 配置与 procd 进程管理。稳定版更新经自动化验证后合入，当前软件包版本见 [Makefile](Makefile)。
+基于 [fatedier/frp](https://github.com/fatedier/frp)，兼容旧版 LuCI/UCI 与 INI，支持原生 TOML，并使用 procd 管理进程。稳定版更新经自动化验证后合入，当前软件包版本见 [Makefile](Makefile)。
 
 本仓库用于固件源码树或 SDK 的 feed/package 集成，不提供 opkg/apk 二进制订阅源。
 
@@ -49,7 +49,7 @@ bash ./feeds/frp_custom/scripts/install-feed.sh
 
 </details>
 
-> 此处沿用的是固件编译选项。当前软件包采用原生 TOML 与独立服务配置；旧版 UCI/LuCI 配置需按[迁移说明](#服务管理与配置迁移)处理。
+> 已使用旧版官方 `luci-app-frpc` / `luci-app-frps` 时，可保留 `init` / `conf` 结构的 UCI 设置，由本包继续生成 INI。升级后检查服务日志和实际连接，详见[兼容说明](#服务管理与配置迁移)。
 
 ## 特性
 
@@ -64,7 +64,7 @@ bash ./feeds/frp_custom/scripts/install-feed.sh
 | 精简构建 | 使用上游 `noweb` 标签，不内嵌 FRP 自带的网页静态资源，不需要 Node.js |
 | 版本更新 | 只跟踪官方 latest 稳定 Release；构建通过后提交版本和 SHA256 |
 
-当前版本采用命令行配置，不包含 LuCI 页面或 FRP 内置网页资源。旧版 INI 与 UCI 代理配置需迁移为 TOML。
+本包更新 FRP 核心和启动脚本，不附带 LuCI 页面或 FRP 内置网页资源。旧版官方 LuCI 的 UCI 配置可继续使用，也可指定完整 INI/TOML 文件。当前不适配 ImmortalWrt master 新 LuCI 的全部 TOML 专用选项。
 
 ## 构建要求
 
@@ -102,6 +102,23 @@ git -C package/frp pull --ff-only
 
 </details>
 
+## 已有 LuCI / INI 配置
+
+使用旧版 ImmortalWrt 官方 LuCI（`luci-app-frpc` / `luci-app-frps`）时，保留原有软件包选择和 `/etc/config/frpc` / `/etc/config/frps` 即可。启动脚本读取 `config init`、`config conf 'common'` 及代理节，生成 `/var/etc/frpc.ini` / `/var/etc/frps.ini`，校验后启动。
+
+- **页面填写的设置**：仍从原 UCI 配置读取，不需要手动改成 TOML。
+- **附加 INI**：保留原 `init` 节中的 `list conf_inc` 和代理节的 `list _` 原始配置行。
+- **已保存的完整 INI**：可在 `init` 节设置 `option config_file '/etc/frp/frpc.ini'`（服务端对应 `frps.ini`）。此时直接读取文件，忽略 UCI 的 `conf` 节，页面中的代理设置不再参与生成。
+- **新安装**：默认关闭，先填写配置，再将 `init` 节的 `enabled` 设为 `1`。原官方配置没有此开关时沿用原服务启动方式，不会强制关闭已配置服务。
+
+FRP 0.71.0 仍能读取 INI，但上游已将它列为弃用格式；新功能不保证支持 INI。自动更新会验证 INI 配置和实际隧道，失败时不会自动合入新版本。
+
+### 官方 LuCI 的变化
+
+核对日期：2026-09-17。ImmortalWrt `openwrt-23.05` 分支仍采用 **UCI → INI**；`master` 的 LuCI 和启动脚本已采用 **UCI → TOML**。更新本 feed 不会自动更新 LuCI，也不能以开发分支的变化推断某个固件版本已经更新。
+
+本阶段优先兼容旧版官方页面，保留 INI 运行方式。若使用 master 新 LuCI 的 TOML 专用功能，应使用与其配套的官方生成器；本包当前可通过完整 TOML 文件使用上游新功能。第三方同名 LuCI 插件可能使用不同配置结构，不能仅凭页面名称认定兼容。FRP 上游自身的网页面板与 OpenWrt LuCI 是不同组件。来源见[核对记录](docs/SOURCES.md#ini--luci-兼容基准)。
+
 ## 客户端配置
 
 客户端连接至已部署的 `frps` 服务端。两端版本需兼容；路由器作为客户端通常无需开放入站端口。
@@ -130,7 +147,8 @@ remotePort = 6000
 ```sh
 chmod 600 /etc/frp/frpc.toml
 frpc verify -c /etc/frp/frpc.toml
-uci set frpc.main.enabled='1'
+uci set 'frpc.@init[0].config_file=/etc/frp/frpc.toml'
+uci set 'frpc.@init[0].enabled=1'
 uci commit frpc
 /etc/init.d/frpc enable
 /etc/init.d/frpc restart
@@ -151,7 +169,8 @@ UCI `enabled=1` 控制服务是否允许运行，`init.d enable` 控制开机启
 ```sh
 chmod 600 /etc/frp/frps.toml
 frps verify -c /etc/frp/frps.toml
-uci set frps.main.enabled='1'
+uci set 'frps.@init[0].config_file=/etc/frp/frps.toml'
+uci set 'frps.@init[0].enabled=1'
 uci commit frps
 /etc/init.d/frps enable
 /etc/init.d/frps restart
@@ -163,18 +182,22 @@ logread -e frps
 ## 服务管理与配置迁移
 
 ```sh
-/etc/init.d/frpc restart   # 修改 TOML 后重启使其生效
+/etc/init.d/frpc restart   # 修改 INI/TOML 后重启使其生效
 /etc/init.d/frpc stop      # 停止当前进程
 /etc/init.d/frpc disable   # 取消开机启动
-uci set frpc.main.enabled='0'
+uci set 'frpc.@init[0].enabled=0'
 uci commit frpc
 ```
 
-服务端使用对应的 `frps` 命令。reload 通过重启进程加载配置，期间现有隧道连接会中断。UCI 变更支持 procd reload 触发；直接编辑 TOML 后需执行 restart。
+服务端使用对应的 `frps` 命令。reload 通过重启进程加载配置，期间现有隧道连接会中断。UCI 变更支持 procd reload 触发；直接编辑 INI/TOML 后需执行 restart。
 
-默认配置以 OpenWrt `conffiles` 声明，正常升级时由包管理器保留；如果有 `.opkg-dist` / `.apk-new` 等新配置文件，需比较后合并。自定义 `config_file` 指向的其他文件请自行纳入备份，不在默认两个 TOML 文件的保留清单内。
+默认配置以 OpenWrt `conffiles` 声明，正常升级时由包管理器保留；如果有 `.opkg-dist` / `.apk-new` 等新配置文件，需比较后合并。保留清单包括两个 UCI 文件、`/etc/frp/frpc.toml` / `frps.toml`、`/etc/frp/frpc.ini` / `frps.ini` 和 `frpc.d` / `frps.d` 目录；其他自定义路径需自行纳入备份。
 
-从官方包、kuoruan 旧包或 LuCI 配置迁移前，先备份 `/etc/config/frpc`、`/etc/config/frps`、`/etc/frp`。本包只读取 `main` 节的 `enabled` 与 `config_file`，不会读取旧的 UCI proxy 配置列表。迁移时按本文建立 UCI 节与 TOML，校验通过后启用服务，并停用会覆盖配置的旧版 LuCI 管理组件。
+升级前备份 `/etc/config/frpc`、`/etc/config/frps` 和 `/etc/frp`。旧版官方 `init` / `conf` 配置可原样保留；不要用仓库默认文件覆盖已有配置。生成的 INI 使用受限权限，并保留 `init` 的用户、组、日志、环境变量和进程重启选项；指定的自定义账户需在系统中存在。
+
+本源早期版本的 `config frpc 'main'` / `config frps 'main'` 也继续支持，仍读取该节的 `enabled` 和 `config_file`。这一模式优先于旧 UCI 生成方式；这些安装应继续使用原 `main` 节管理，不执行上面的 `@init[0]` 示例。切换回旧 LuCI 时，应先备份，再去掉 `main` 节并恢复原 `init` / `conf` 配置。
+
+附加 INI 和 TOML 不能混合拼接。旧配置中特殊字段是否仍被新 FRP 接受，以 `verify`、启动日志与实际连接为准；自动化测试不能代替实际设备升级测试。
 
 本项目与官方 feed 使用相同包名。同版本切换来源时，需重新构建固件或显式重新安装目标来源的软件包。安装产物应与固件系列、架构、libc 及包格式匹配；snapshot 产物的兼容范围以对应 SDK 为准。
 

@@ -15,3 +15,11 @@
 SHA256：`1dd367d6d822a7fce1d3012fce0a6e778bc90c454e2c7baa0eb1e6de6054c61b`
 
 上述 master、latest、snapshot 链接会变化。固定的 FRP tag/hash 和每次 CI 保存的来源记录才对应具体构建。
+# INI / LuCI 兼容基准
+
+核对于 2026-09-17。本包以旧官方 `init` / `conf` UCI 结构实现兼容，不修改 FRP 上游解析器，也不捆绑 LuCI。
+
+- [ImmortalWrt 23.05 frpc 启动脚本](https://github.com/immortalwrt/packages/blob/openwrt-23.05/net/frp/files/frpc.init)：UCI 回调生成 INI、附加配置及 procd 参数的参考。
+- [ImmortalWrt 当前 frpc 启动脚本](https://github.com/immortalwrt/packages/blob/8509f551edb7beb4a6324afca4d84b2bea404b66/net/frp/files/frpc.init)：开发分支已转换成 TOML。
+- [ImmortalWrt 当前 LuCI 页面](https://github.com/immortalwrt/luci/blob/830486a7e412a83f233e9c18bd1eb3668212c799/applications/luci-app-frpc/htdocs/luci-static/resources/view/frpc.js)：仍保存 UCI，但包含新 TOML 功能；本包不宣称完整兼容此页面。
+- [FRP 0.71.0 配置加载源码](https://github.com/fatedier/frp/blob/v0.71.0/pkg/config/load.go)：仍有客户端和服务端 legacy INI 加载入口。
