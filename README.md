@@ -17,33 +17,37 @@
 
 ## Feed 集成
 
-已在 ImmortalWrt 编译配置中启用 `frpc` / `frps` 时，添加本源并覆盖内置包即可沿用原有选项，后续按原流程编译固件。
+将本源排在官方 `packages` 源之前，首次安装 feeds 时会优先选用本源的 FRP。已启用的 `frpc` / `frps` 编译选项可以沿用。
 
 **1. 添加源**
 
-在源码根目录的 `feeds.conf.default` 中添加一行（若使用 `feeds.conf`，则写入该文件）：
+在源码根目录的 `feeds.conf.default` 中，将以下一行放在官方 `packages` 源之前，保留其他源配置不变。若使用独立的 `feeds.conf`，则修改该文件。
 
 ```text
 src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
 ```
 
-**2. 指定使用本源的 FRP**
-
-在原有的 feeds 更新、安装步骤之后追加一条命令：
-
-```sh
-bash ./feeds/frp_custom/scripts/install-feed.sh
-```
-
-完整的 feeds 阶段如下；已有前两行的编译脚本只需追加最后一行：
+**2. 更新并安装 feeds**
 
 ```sh
 ./scripts/feeds update -a
 ./scripts/feeds install -a
+```
+
+全新源码、尚未安装过 feeds 时，完成以上两步即可按原流程编译固件，无需运行切换脚本或单独编译 FRP。
+
+<details>
+<summary>已有源码安装过旧 FRP：额外切换一次</summary>
+
+调整源的顺序不会自动替换已经存在的旧包链接。完成上述 feeds 更新后，执行一次：
+
+```sh
 bash ./feeds/frp_custom/scripts/install-feed.sh
 ```
 
-切换脚本会移除旧包的 feed 链接、安装本源，并保留原有编译配置。随后照常编译固件，无需重新选择 FRP，也无需单独编译软件包。保留最后一行，后续更新 feeds 时即可继续使用本源版本。
+脚本会移除旧包的 feed 链接、安装本源，并保留原有编译配置。切换成功后，保持本源排在官方 `packages` 源之前，后续照常更新 feeds、编译固件即可，无需每次运行此脚本。若其他脚本又切回旧源，可重新执行。
+
+</details>
 
 > 此处沿用的是固件编译选项。当前软件包采用原生 TOML 与独立服务配置；旧版 UCI/LuCI 配置需按[迁移说明](#服务管理与配置迁移)处理。
 
@@ -230,7 +234,7 @@ bash scripts/build-sdk.sh immortalwrt x86/64
 | --- | --- |
 | 提示找不到 golang-package.mk | 更新标准 packages feed，确认名称是 packages |
 | 提示需要更高版本 Go | 检查 feed 的 Go 主机工具链版本；使用匹配的较新构建分支 |
-| 构建版本与预期不符 | 最后执行 `feeds install -f -p frp_custom frp`，排查 package 目录中的重复包 |
+| 构建版本与预期不符 | 确认本源位于 `packages` 源之前；已有旧包链接时运行一次 `bash feeds/frp_custom/scripts/install-feed.sh`，并排查重复包定义 |
 | 下载 hash 不一致 | 先检查上游/镜像/SDK 是否轮换；不要用 `skip` 绕过校验 |
 | 服务没有进程 | 检查 UCI enabled、main 节、示例 token 和 `frpc/frps verify` 输出 |
 | 登录或端口注册失败 | 检查服务地址、token、TLS、allowPorts、防火墙和日志 |
