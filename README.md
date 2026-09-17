@@ -1,8 +1,10 @@
 # FRP for ImmortalWrt / OpenWrt
 
+<!-- frp-version --> 当前版本：**FRP 0.71.0** · 软件包：**0.71.0-r3**
+
 [![Build and validate](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml/badge.svg)](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)
 
-用于编译固件时更新内置的 `frpc` / `frps`，自动跟踪 [FRP 官方稳定版](https://github.com/fatedier/frp/releases/latest)。当前版本见 [Makefile](frp/Makefile)。
+用于编译固件时更新内置的 `frpc` / `frps`，自动跟踪 [FRP 官方稳定版](https://github.com/fatedier/frp/releases/latest)。
 
 沿用 ImmortalWrt master 官方 LuCI 和 UCI 配置，支持 TOML，保留 INI 兼容模式。
 
