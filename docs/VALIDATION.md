@@ -2,11 +2,19 @@
 
 验证日期：2026-09-17。本文记录本地验证与 SDK 集成测试结果。后续提交的构建状态见 [GitHub Actions](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)。
 
+## 实机升级反馈
+
+2026-09-17，用户在 ImmortalWrt 25.12-SNAPSHOT x86/64 环境编译并升级固件，反馈刷机成功。升级前提供的 manifest 确认 `frpc 0.71.0-r3`；rootfs 中的启动脚本、兼容脚本与仓库一致，原 LuCI 客户端页面包仍包含在固件中。
+
+升级后用户提供的服务端截图显示两台 ImmortalWrt 客户端版本为 **v0.71.0**，状态均为 **Online**。这确认了所展示客户端能够运行新版并连接服务端；尚未收到逐项代理访问、再次重启恢复或长期稳定性测试结果，不代表全部设备及配置均已验证。记录不包含设备标识、IP、域名或认证信息。
+
 ## 直接添加 feed 的目录修复
 
 原仓库将 Makefile 放在根目录，ImmortalWrt 25.12 的扫描规则会把 Makefile 内容误识别成包路径，导致 `target pattern contains no '%'`。此前 SDK 测试先将文件放入临时 `frp/` 子目录，未覆盖用户直接添加 Git 源的目录结构；此前的 SDK 成功记录不能证明旧目录结构可直接添加为 feed。
 
 现在将软件包及运行文件放入 `frp/`，SDK 沿用同一目录结构。新增回归测试对仓库文件执行官方包发现规则，确认只发现 `frp`，并重现旧根目录结构的失败。切换脚本也验证了不带参数时选择 `frp/`，并保留原编译配置。FRP 版本及运行文件内容不变。
+
+修复提交 `386257fd8b1b321901f0a14d2fb5eb3623b2d0ce` 的[完整构建](https://github.com/itwxf0818/openwrt-frp/actions/runs/35191253702)已通过，包括源码检查及四组 SDK 构建。
 
 ## 当前 master 适配（0.71.0-r3）
 
