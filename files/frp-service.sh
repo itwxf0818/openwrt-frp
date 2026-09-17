@@ -157,7 +157,8 @@ start_service() {
 		config_file="$FRP_RUNTIME/$NAME.ini"
 		mv -f "$generated" "$config_file" || { rm -f "$generated"; return 1; }
 	fi
-	procd_open_instance main
+	# ImmortalWrt 25.12 LuCI reads instances.instance1.running explicitly.
+	procd_open_instance instance1
 	procd_set_param command "$PROG" -c "$config_file"
 	procd_set_param file "$config_file" "/etc/config/$NAME"
 	[ -z "$init_cfg" ] || config_list_foreach "$init_cfg" conf_inc frp_watch

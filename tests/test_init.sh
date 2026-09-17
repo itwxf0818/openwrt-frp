@@ -57,7 +57,7 @@ config_list_foreach() {
     done <<< "${lists["$1,$2"]:-}"
 }
 logger() { :; }
-procd_open_instance() { echo open >> "$calls"; }
+procd_open_instance() { printf 'open %s\n' "${1:-instance1}" >> "$calls"; }
 procd_set_param() { printf '%s\n' "$*" >> "$calls"; }
 procd_append_param() { procd_set_param "$@"; }
 procd_close_instance() { echo close >> "$calls"; }
@@ -93,9 +93,10 @@ EOF
     sed -i 's/CHANGE_ME_WITH_A_LONG_RANDOM_TOKEN/test-only-token/' "$path"
     : > "$calls"; verify_status=1
     if start_service; then echo 'Accepted failed verify'; exit 1; fi
-    if grep -qx open "$calls"; then exit 1; fi
+    if grep -q '^open ' "$calls"; then exit 1; fi
     verify_status=0; : > "$calls"; start_service
     grep -Fxq "command $PROG -c $path" "$calls"
+    grep -Fxq 'open instance1' "$calls"
     grep -qx close "$calls"
     # Old official LuCI UCI layout: init, common and named/disabled proxies.
     cat > "$fixture" <<EOF
@@ -147,11 +148,12 @@ EOF
     if grep -q '^respawn' "$calls"; then exit 1; fi
     grep -Fxq 'env FRP_TEST_ENV=test-value' "$calls"
     grep -Fxq "command $PROG -c $generated" "$calls"
+    grep -Fxq 'open instance1' "$calls"
     cp "$generated" "$tmp/last-good.ini"
     # Reject errors before registering a process; keep last good generated INI.
     rm "$tmp/extra.ini"; : > "$calls"
     if start_service; then echo 'Ignored missing include'; exit 1; fi
-    if grep -qx open "$calls"; then exit 1; fi
+    if grep -q '^open ' "$calls"; then exit 1; fi
     cmp "$generated" "$tmp/last-good.ini"
     # Explicit INI under init bypasses conflicting UCI conf sections.
     cat > "$fixture" <<EOF

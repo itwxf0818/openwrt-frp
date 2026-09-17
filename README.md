@@ -71,7 +71,7 @@ bash ./feeds/frp_custom/scripts/install-feed.sh
 - Linux 上的 OpenWrt / ImmortalWrt 源码树或 SDK，并已准备官方要求的构建依赖。
 - 标准 `packages` feed，且目录为 `feeds/packages`，包含 `lang/golang/golang-package.mk`。
 - FRP 0.71.0 的 `go.mod` 要求 **Go ≥ 1.25.0**。构建使用 `packages` feed 提供的 Go 主机工具链。
-- CI 构建矩阵采用 snapshot SDK：ImmortalWrt x86/64、ImmortalWrt mediatek/filogic（ARM64）、OpenWrt x86/64。每次构建保留 SDK 与 feed 来源记录。
+- CI 构建矩阵包括 ImmortalWrt 25.12.2 x86/64，以及三个 snapshot SDK：ImmortalWrt x86/64、ImmortalWrt mediatek/filogic（ARM64）、OpenWrt x86/64。每次构建保留 SDK 与 feed 来源记录。
 - 旧版固件分支需确认 Go 工具链满足上游要求。版本不足时，应按对应分支规范更新 Go 构建支持，或固定兼容的 FRP 版本。
 - 目标设备需具备足够的内存与存储空间，资源需求以实际构建产物和运行负载为准。
 
@@ -108,10 +108,12 @@ git -C package/frp pull --ff-only
 
 - **页面填写的设置**：仍从原 UCI 配置读取，不需要手动改成 TOML。
 - **附加 INI**：保留原 `init` 节中的 `list conf_inc` 和代理节的 `list _` 原始配置行。
-- **已保存的完整 INI**：可在 `init` 节设置 `option config_file '/etc/frp/frpc.ini'`（服务端对应 `frps.ini`）。此时直接读取文件，忽略 UCI 的 `conf` 节，页面中的代理设置不再参与生成。
+- **已保存的完整 INI**：可在 `init` 节设置 `option config_file '/etc/frp/frpc.ini'`（服务端对应 `frps.ini`）。此时直接读取文件，忽略 UCI 的 `conf` 节，页面中的代理设置不再参与生成。若设置了运行用户，需确保该用户能读取配置文件并访问其父目录。
 - **新安装**：默认关闭，先填写配置，再将 `init` 节的 `enabled` 设为 `1`。原官方配置没有此开关时沿用原服务启动方式，不会强制关闭已配置服务。
 
 FRP 0.71.0 仍能读取 INI，但上游已将它列为弃用格式；新功能不保证支持 INI。自动更新会验证 INI 配置和实际隧道，失败时不会自动合入新版本。
+
+日志中的 `ini format is deprecated` 是弃用提示，不表示启动失败；服务状态与隧道是否正常仍以连接日志和实际访问结果为准。
 
 ### 官方 LuCI 的变化
 
@@ -208,7 +210,7 @@ uci commit frpc
 1. 拒绝 draft、prerelease 和非 `v数字.数字.数字` 标签；按数字比较，避免降级。
 2. 下载 `codeload.github.com/fatedier/frp/tar.gz/v版本`，计算 SHA256，并确认源码包含正确的 Go module。
 3. 生成候选 Makefile，修改 `PKG_VERSION` / `PKG_HASH`，将 `PKG_RELEASE` 重置为 1。
-4. 在同一次运行中调用完整构建：静态检查、更新器回归测试、原生隧道测试、四类 CPU 交叉编译、三组官方 SDK 软件包构建。
+4. 在同一次运行中调用完整构建：静态检查、更新器回归测试、INI/TOML 原生隧道测试、四类 CPU 交叉编译、四组官方 SDK 软件包构建。
 5. 全部验证通过、且默认分支在构建期间未发生变更时，由 GitHub Actions bot 提交 Makefile。更新范围仅限源码包版本与校验信息。
 
 验证在版本提交前完成，并与更新任务处于同一次工作流中，避免依赖 `GITHUB_TOKEN` 提交后的 push 触发行为。构建产物可在对应运行页面的 Artifacts 中获取。
@@ -220,7 +222,7 @@ GitHub latest 是上游指定的最新稳定 Release，不扫描所有标签排�
 - 使用仓库内置 `GITHUB_TOKEN`，无需个人访问令牌。检查和构建只有读取权限，提交 job 才获得 `contents: write`。
 - 如果组织策略禁止写入，或默认分支保护不允许机器人直接提交，提交步骤会失败并保留日志，不会绕过保护。维护者可审阅已验证的候选 Makefile，再用 PR 更新。
 - Actions 在长期无活动的公开仓库可能暂停定时任务；留意 GitHub 邮件/Actions 页面，必要时重新启用。
-- SDK 使用官方 snapshot，通过 HTTPS 获取同源 SHA256 清单校验完整性；这不是额外签名验证。产物包含 SDK URL/hash、feed commit 和构建配置，便于重现与诊断。需要严格长期重现时应保存 SDK 和完整 feed commit 对应源码。
+- SDK 使用官方稳定版和 snapshot，通过 HTTPS 获取同源 SHA256 清单校验完整性。产物包含 SDK URL/hash、feed commit 和构建配置，便于重现与诊断。需要严格长期重现时应保存 SDK 和完整 feed commit 对应源码。
 - 上游 API、工具链或 SDK 变更导致验证失败时，自动更新将暂停提交并保留日志。Dependabot 每月检查 Actions 依赖更新。
 - Actions 产物保留 14 天，候选 Makefile 保留 7 天；不自动发布二进制 Release。
 
@@ -268,7 +270,7 @@ bash scripts/build-sdk.sh immortalwrt x86/64
 
 ```text
 Makefile                   一个源码构建生成 frpc/frps 两个软件包
-files/                     两组 procd、UCI、TOML
+files/                     两组 procd/UCI、共用兼容逻辑、TOML 示例
 scripts/                   检查上游、源码/SDK 下载、构建、隧道验证
 tests/                     更新器与服务脚本回归测试
 .github/workflows/         构建与定时更新
