@@ -36,6 +36,7 @@ jobs:
           sh -n files/frpc.init
           sh -n files/frps.init
           bash tests/test_init.sh
+          bash tests/test_install_feed.sh
           shellcheck -s sh -e SC1091,SC2034 files/*.init
           shellcheck scripts/*.sh tests/*.sh
       - name: Verify exact upstream archive

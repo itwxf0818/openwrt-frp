@@ -23,8 +23,7 @@ feed_config=feeds.conf.default
 [[ ! -f feeds.conf ]] || feed_config=feeds.conf
 printf '\nsrc-link frp_custom %s\n' "$feed_root" >> "$feed_config"
 ./scripts/feeds update frp_custom
-./scripts/feeds install -f -p frp_custom frp
-test "$(readlink -f package/feeds/frp_custom/frp)" = "$feed_root/frp"
+bash "$repo/scripts/install-feed.sh" frp_custom "$feed_root/frp"
 cat >> .config <<'EOF'
 CONFIG_ALL_NONSHARED=n
 CONFIG_ALL_KMODS=n

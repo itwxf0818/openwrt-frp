@@ -32,7 +32,7 @@ src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
 在原有的 feeds 更新、安装步骤之后追加一条命令：
 
 ```sh
-./scripts/feeds install -f -p frp_custom frp
+bash ./feeds/frp_custom/scripts/install-feed.sh
 ```
 
 完整的 feeds 阶段如下；已有前两行的编译脚本只需追加最后一行：
@@ -40,10 +40,10 @@ src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
 ```sh
 ./scripts/feeds update -a
 ./scripts/feeds install -a
-./scripts/feeds install -f -p frp_custom frp
+bash ./feeds/frp_custom/scripts/install-feed.sh
 ```
 
-随后照常编译固件，无需重新选择 FRP，也无需单独编译软件包。保留最后一行，后续更新 feeds 时即可继续使用本源版本。
+切换脚本会移除旧包的 feed 链接、安装本源，并保留原有编译配置。随后照常编译固件，无需重新选择 FRP，也无需单独编译软件包。保留最后一行，后续更新 feeds 时即可继续使用本源版本。
 
 > 此处沿用的是固件编译选项。当前软件包采用原生 TOML 与独立服务配置；旧版 UCI/LuCI 配置需按[迁移说明](#服务管理与配置迁移)处理。
 
