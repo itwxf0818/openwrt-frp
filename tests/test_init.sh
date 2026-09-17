@@ -63,12 +63,12 @@ procd_append_param() { procd_set_param "$@"; }
 procd_close_instance() { echo close >> "$calls"; }
 procd_add_reload_trigger() { :; }
 # shellcheck disable=SC1091
-source "$repo/files/frp-service.sh"
+source "$repo/frp/files/frp-service.sh"
 for NAME in frpc frps; do
     # shellcheck disable=SC1090
-    source "$repo/files/$NAME-master.sh"
+    source "$repo/frp/files/$NAME-master.sh"
     # shellcheck disable=SC1091
-    source "$repo/files/frp-service.sh"
+    source "$repo/frp/files/frp-service.sh"
     PROG="$tmp/frp-mock"
     FRP_RUNTIME="$tmp/runtime"
     real_binary=
@@ -78,7 +78,7 @@ for NAME in frpc frps; do
     fi
     fixture="$tmp/$NAME.uci"
     # New installations must stay off with the shipped UCI defaults.
-    values=(); cp "$repo/files/$NAME.config" "$fixture"
+    values=(); cp "$repo/frp/files/$NAME.config" "$fixture"
     : > "$calls"; start_service; [[ ! -s $calls ]]
     # Preserve the previous version of this feed's direct-file mode.
     cat > "$fixture" <<EOF
@@ -92,7 +92,7 @@ EOF
     if start_service; then echo 'Accepted relative config'; exit 1; fi
     path="$tmp/config with spaces.toml"
     sed -i "s|relative.ini|$path|" "$fixture"
-    cp "$repo/files/$NAME.toml" "$path"
+    cp "$repo/frp/files/$NAME.toml" "$path"
     if start_service; then echo 'Accepted placeholder token'; exit 1; fi
     sed -i 's/CHANGE_ME_WITH_A_LONG_RANDOM_TOKEN/test-only-token/' "$path"
     : > "$calls"; verify_status=1

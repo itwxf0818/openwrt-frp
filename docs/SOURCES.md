@@ -19,7 +19,7 @@ SHA256：`1dd367d6d822a7fce1d3012fce0a6e778bc90c454e2c7baa0eb1e6de6054c61b`
 
 ### 当前 master 适配（r3）
 
-`files/frpc-master.sh` 和 `files/frps-master.sh` 来自 ImmortalWrt packages 提交 `8509f551edb7beb4a6324afca4d84b2bea404b66` 的 `net/frp/files/*.init`。原始文件路径与 SHA256 记录在 [master-source.json](../files/master-source.json)。该官方软件包声明 Apache-2.0 许可证。本包不修改 FRP 上游源码，也不替换 LuCI 页面。
+`frp/files/frpc-master.sh` 和 `frp/files/frps-master.sh` 来自 ImmortalWrt packages 提交 `8509f551edb7beb4a6324afca4d84b2bea404b66` 的 `net/frp/files/*.init`。原始文件路径与 SHA256 记录在 [master-source.json](../frp/files/master-source.json)。该官方软件包声明 Apache-2.0 许可证。本包不修改 FRP 上游源码，也不替换 LuCI 页面。
 
 本地适配限定为：将启动入口改名以接入模式选择；按目标配置路径创建运行目录；保持 `instance1`；启动前使用同一环境校验生成的 TOML；附加配置失败时阻止启动；使用追加方式保留多个配置文件的监视项；服务端在缺少 `tls_force` 时兼容旧 `tls_only`。字段映射与 TOML 生成主要沿用官方实现，相关 ShellCheck 例外只保留上游 ASCII 布尔转换、重定向及回调风格。
 

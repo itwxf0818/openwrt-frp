@@ -20,7 +20,7 @@ binaries = {name: (a.bin_dir / (name + suffix)).resolve() for name in ("frpc", "
 for name, binary in binaries.items():
     version = subprocess.check_output([binary, "--version"], text=True).strip()
     assert version == metadata()["PKG_VERSION"], version
-    subprocess.run([binary, "verify", "-c", ROOT / "files" / f"{name}.toml"], check=True)
+    subprocess.run([binary, "verify", "-c", ROOT / "frp" / "files" / f"{name}.toml"], check=True)
 
 
 def free_port():

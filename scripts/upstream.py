@@ -10,7 +10,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-MAKEFILE = ROOT / "Makefile"
+MAKEFILE = ROOT / "frp" / "Makefile"
 API = "https://api.github.com/repos/fatedier/frp/releases/latest"
 
 

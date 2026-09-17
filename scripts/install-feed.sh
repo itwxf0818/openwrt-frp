@@ -2,7 +2,7 @@
 # Run from the OpenWrt/ImmortalWrt source root after updating the feeds.
 set -euo pipefail
 feed=${1:-frp_custom}
-expected=${2:-$(cd "$(dirname "$0")/.." && pwd)}
+expected=${2:-$(cd "$(dirname "$0")/../frp" && pwd)}
 [[ "$feed" =~ ^[a-zA-Z0-9_]+$ ]] || { echo 'Invalid feed name' >&2; exit 1; }
 [[ -x ./scripts/feeds ]] || { echo 'Run this command from the firmware source root.' >&2; exit 1; }
 

@@ -30,4 +30,9 @@ if fail_install=1 bash "$repo/scripts/install-feed.sh" frp_custom "$expected_pac
     exit 1
 fi
 cmp original .config
+rm package/feeds/frp_custom/frp
+expected_package="$repo/frp"
+bash "$repo/scripts/install-feed.sh"
+cmp original .config
+[[ $(readlink -f package/feeds/frp_custom/frp) == "$expected_package" ]]
 echo 'PASS: feed switch selects the new package and preserves .config on success and failure'

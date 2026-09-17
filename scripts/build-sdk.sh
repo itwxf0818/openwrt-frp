@@ -9,9 +9,7 @@ mkdir -p "$repo/work/sdk-download" "$repo/work/sdk" "$repo/dist"
 # Only expose package inputs to the feed scanner. Linking the whole repository
 # would make work/sdk/feeds/frp_custom point back into its own parent tree.
 feed_root=$(mktemp -d "$repo/work/frp-feed.XXXXXX")
-mkdir -p "$feed_root/frp"
-cp "$repo/Makefile" "$feed_root/frp/Makefile"
-cp -R "$repo/files" "$feed_root/frp/files"
+cp -R "$repo/frp" "$feed_root/frp"
 python3 "$repo/scripts/download-sdk.py" "$distribution" "$target" "$repo/work/sdk-download" --release "$release"
 archives=("$repo"/work/sdk-download/*-sdk-*.tar.*)
 [[ ${#archives[@]} == 1 ]]

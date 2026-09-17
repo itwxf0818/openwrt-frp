@@ -27,18 +27,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: candidate
-          path: .
+          path: frp
       - name: Static checks and updater regression tests
         run: |
           python3 scripts/check.py
           python3 -m unittest discover -s tests -v
           bash -n scripts/build-sdk.sh
-          sh -n files/frpc.init
-          sh -n files/frps.init
-          for script in files/*.sh; do sh -n "$script"; done
+          sh -n frp/files/frpc.init
+          sh -n frp/files/frps.init
+          for script in frp/files/*.sh; do sh -n "$script"; done
           bash tests/test_init.sh
           bash tests/test_install_feed.sh
-          shellcheck -s sh -e SC1091,SC2034 files/*.init files/*.sh
+          bash tests/test_feed_layout.sh
+          shellcheck -s sh -e SC1091,SC2034 frp/files/*.init frp/files/*.sh
           shellcheck scripts/*.sh tests/*.sh
       - name: Verify exact upstream archive
         run: python3 scripts/fetch-source.py
@@ -103,7 +104,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: candidate
-          path: .
+          path: frp
       - name: Install SDK prerequisites
         run: |
           sudo apt-get update

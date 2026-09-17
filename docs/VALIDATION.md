@@ -2,6 +2,12 @@
 
 验证日期：2026-09-17。本文记录本地验证与 SDK 集成测试结果。后续提交的构建状态见 [GitHub Actions](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)。
 
+## 直接添加 feed 的目录修复
+
+原仓库将 Makefile 放在根目录，ImmortalWrt 25.12 的扫描规则会把 Makefile 内容误识别成包路径，导致 `target pattern contains no '%'`。此前 SDK 测试先将文件放入临时 `frp/` 子目录，未覆盖用户直接添加 Git 源的目录结构；此前的 SDK 成功记录不能证明旧目录结构可直接添加为 feed。
+
+现在将软件包及运行文件放入 `frp/`，SDK 沿用同一目录结构。新增回归测试对仓库文件执行官方包发现规则，确认只发现 `frp`，并重现旧根目录结构的失败。切换脚本也验证了不带参数时选择 `frp/`，并保留原编译配置。FRP 版本及运行文件内容不变。
+
 ## 当前 master 适配（0.71.0-r3）
 
 默认采用官方 master UCI→TOML 逻辑，保留原生 INI/TOML 和显式旧 UCI→INI 模式。代码提交 `549f4b328b116979f708e93e005342edca8cb3a6`，[完整构建 #35188437245](https://github.com/itwxf0818/openwrt-frp/actions/runs/35188437245) 已全部通过。
