@@ -45,6 +45,10 @@ bash ./feeds/frp_custom/scripts/install-feed.sh
 
 ## 自动更新
 
-每天检查上游稳定版，更新版本和源码校验值，测试及 SDK 构建全部通过后自动提交。失败时保留原版本。
+每天北京时间 **10:23** 检查上游稳定版。发现新版后，更新版本和源码校验值，测试及四组 SDK 构建全部通过后自动提交，并发布到 [Releases](https://github.com/itwxf0818/openwrt-frp/releases)，例如 `v0.71.1-r1`。
+
+通常在下次定时检查后，加上构建时间完成更新；GitHub 调度或下载可能延迟。验证失败时不提交、不发布。也可在 Actions → Update FRP → Run workflow 手动检查。Releases 提供源码，路由器需重新编译、升级后才会使用新版。
+
+若提交成功但 Release 发布失败，可在对应运行页面选择 Re-run failed jobs 重试；默认分支已发生其他变更时会停止，需人工核对。
 
 [构建状态](https://github.com/itwxf0818/openwrt-frp/actions) · [验证记录](docs/VALIDATION.md) · [源码与兼容基准](docs/SOURCES.md)
