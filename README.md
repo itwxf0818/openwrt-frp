@@ -1,21 +1,21 @@
-# OpenWrt / ImmortalWrt FRP 软件源
+# FRP for OpenWrt / ImmortalWrt
 
 [![Build and validate](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml/badge.svg)](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)
 
-为 OpenWrt / ImmortalWrt 编译 `frpc` 客户端和 `frps` 服务端。跟踪 [fatedier/frp 官方稳定版](https://github.com/fatedier/frp/releases/latest)，从源码编译，不下载其他平台的 FRP 二进制来冒充路由器软件包。
+面向 OpenWrt 与 ImmortalWrt 的 FRP 软件包源，提供 `frpc` 客户端与 `frps` 服务端的源码构建、服务管理和上游版本跟踪。
 
-首版基线：**FRP 0.71.0**，2026-09-17 核实。后续实际版本以本仓库 [Makefile](Makefile) 为准。支持原生 **TOML** 配置和 **procd** 服务管理，第一阶段不提供 LuCI。
+基于 [fatedier/frp](https://github.com/fatedier/frp)，采用原生 TOML 配置与 procd 进程管理。稳定版更新经自动化验证后合入，当前软件包版本见 [Makefile](Makefile)。
 
-## 不懂编程，从这里开始
+本仓库用于固件源码树或 SDK 的 feed/package 集成，不提供 opkg/apk 二进制订阅源。
 
-1. 把本项目完整上传到 `itwxf0818/openwrt-frp`，方法见 [上传说明](docs/UPLOAD.md)。务必包含 `.github` 文件夹。
-2. 打开仓库 **Actions → Build and validate**。首次上传会自动检查并编译；全部绿色才表示这次 SDK 构建通过。初次可能需要几十分钟至两小时以上。
-3. **Actions → Update FRP → Run workflow** 可以手动检查新版本。以后每天北京时间约 **10:23** 自动检查，GitHub 可能延迟调度。
-4. 将下面的 feed 集成步骤交给你的 ImmortalWrt 固件编译流程。这个仓库是“编译固件时使用的源码源”，不能当成路由器里 opkg/apk 的二进制订阅地址。
+## 快速导航
 
-本地交付的验证范围见 [验证记录](docs/VALIDATION.md)。Actions 尚未运行时，不能把项目描述成已通过 SDK 或真机测试。
+- [Feed 集成](#feed-集成) · [独立软件包集成](#独立软件包集成)
+- [客户端配置](#客户端配置) · [服务端配置](#服务端配置)
+- [自动更新](#自动更新) · [构建与验证](#构建与验证)
+- [验证记录](docs/VALIDATION.md) · [仓库发布](docs/UPLOAD.md)
 
-## 提供的功能与边界
+## 特性
 
 | 项目 | 说明 |
 | --- | --- |
@@ -28,20 +28,20 @@
 | 精简构建 | 使用上游 `noweb` 标签，不内嵌 FRP 自带的网页静态资源，不需要 Node.js |
 | 版本更新 | 只跟踪官方 latest 稳定 Release；构建通过后提交版本和 SHA256 |
 
-`noweb` 与 LuCI 是两回事：前者省去 FRP 自带的网页面板资源，后者是 OpenWrt 的管理页面。不要期待本项目提供任何一种网页配置界面。没有自动转换旧 INI/UCI 代理条目的功能。
+当前版本采用命令行配置，不包含 LuCI 页面或 FRP 内置网页资源。旧版 INI 与 UCI 代理配置需迁移为 TOML。
 
-## 构建环境要求
+## 构建要求
 
 - Linux 上的 OpenWrt / ImmortalWrt 源码树或 SDK，并已准备官方要求的构建依赖。
 - 标准 `packages` feed，且目录为 `feeds/packages`，包含 `lang/golang/golang-package.mk`。
-- FRP 0.71.0 的 `go.mod` 要求 **Go ≥ 1.25.0**。实际使用的是 OpenWrt feed 构建的主机 Go，而非电脑上随手安装的 Go。
-- 第一版 CI 面向当前 snapshot SDK：ImmortalWrt x86/64、ImmortalWrt mediatek/filogic（ARM64）、OpenWrt x86/64。SDK 和 feed 会变化，因此保存构建来源信息方便排查。
-- 对较旧稳定固件分支（例如仍携带 Go 1.24 的分支），不保证直接编译最新 FRP。需要维护者按该分支规则升级兼容的整个 Go 构建支持，或固定较旧 FRP；不要只改一个 Go 版本号或把不同固件的二进制包混装。
-- Go 支持不代表路由器内存和闪存一定足够；以具体设备构建结果为准。
+- FRP 0.71.0 的 `go.mod` 要求 **Go ≥ 1.25.0**。构建使用 `packages` feed 提供的 Go 主机工具链。
+- CI 构建矩阵采用 snapshot SDK：ImmortalWrt x86/64、ImmortalWrt mediatek/filogic（ARM64）、OpenWrt x86/64。每次构建保留 SDK 与 feed 来源记录。
+- 旧版固件分支需确认 Go 工具链满足上游要求。版本不足时，应按对应分支规范更新 Go 构建支持，或固定兼容的 FRP 版本。
+- 目标设备需具备足够的内存与存储空间，资源需求以实际构建产物和运行负载为准。
 
-## 方法一：作为 feed 集成（推荐）
+## Feed 集成
 
-以下命令在 **OpenWrt / ImmortalWrt 源码根目录**执行。先在 `feeds.conf.default` 末尾加一行（不要重复添加）：
+在 OpenWrt / ImmortalWrt 源码根目录操作。向 `feeds.conf.default` 添加以下源：
 
 ```text
 src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
@@ -52,7 +52,7 @@ src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
 ```sh
 ./scripts/feeds update -a
 ./scripts/feeds install -a
-# 官方 packages 也有 frp，必须最后指定使用本仓库的版本。
+# 覆盖 packages feed 中的同名软件包
 ./scripts/feeds install -f -p frp_custom frp
 
 readlink -f package/feeds/frp_custom/frp
@@ -66,7 +66,7 @@ make menuconfig
 Network → Web Servers/Proxies → frpc / frps
 ```
 
-`<*>` 表示打进固件；`<M>` 表示仅生成软件包。只需客户端时，选 `frpc` 即可。
+`<*>` 将软件包编入固件，`<M>` 仅生成安装包。客户端与服务端可独立选择。
 
 ```sh
 make defconfig
@@ -74,13 +74,13 @@ make package/feeds/frp_custom/frp/download V=s
 make package/feeds/frp_custom/frp/compile -j2 V=s
 ```
 
-之后可以照常编译完整固件。每次重新 `feeds install -a` 后，建议再执行最后那条 `install -f -p frp_custom frp`，确认选中的仍是本源。不要同时启用另一份直接放在 `package/frp` 中的包定义。
+完成后可继续构建完整固件。重新执行 `feeds install -a` 时，应再次指定 `install -f -p frp_custom frp`，保持同名包的来源优先级。源码树内应只启用一份 FRP 包定义。
 
-有些构建树使用独立 `feeds.conf`，此时应修改它，而不是被它覆盖的 `feeds.conf.default`。
+若源码树存在独立的 `feeds.conf`，请将源配置写入该文件。
 
-## 方法二：直接放入 package 目录
+## 独立软件包集成
 
-与方法一二选一。先准备标准依赖，再解除默认 frp 的 feed 链接，不删除官方源文件：
+也可将仓库直接放入 `package/frp`，与 Feed 集成方式二选一。准备依赖并移除默认 FRP 的安装链接后执行：
 
 ```sh
 ./scripts/feeds update -a
@@ -92,19 +92,19 @@ make defconfig
 make package/frp/compile -j2 V=s
 ```
 
-如果 `package/frp` 已经存在，先检查其来源和本地修改，不要覆盖它。以后更新本项目：
+已有 `package/frp` 目录时，需先确认其来源并保留本地修改。后续更新：
 
 ```sh
 git -C package/frp pull --ff-only
 ```
 
-这一方式也要求 `feeds/packages/lang/golang` 存在。不要再同时添加 `frp_custom` feed。
+此方式同样依赖 `feeds/packages/lang/golang`，无需额外添加 `frp_custom` feed。
 
-## 路由器上配置 frpc 客户端
+## 客户端配置
 
-先在有公网入口的服务器准备好兼容版本的 `frps`。路由器作为客户端一般无需开放入站端口。
+客户端连接至已部署的 `frps` 服务端。两端版本需兼容；路由器作为客户端通常无需开放入站端口。
 
-编辑 `/etc/frp/frpc.toml`，下面的地址、端口和 token 必须换成你自己的；`serverAddr` 只填主机名/IP，不带 `https://`：
+编辑 `/etc/frp/frpc.toml`，按部署环境设置服务端地址、认证口令及代理端口。`serverAddr` 使用主机名或 IP 地址，不含协议前缀。
 
 ```toml
 serverAddr = "frp.example.com"
@@ -135,13 +135,13 @@ uci commit frpc
 logread -e frpc
 ```
 
-这里有两个开关：UCI `enabled=1` 允许启动；`init.d enable` 允许开机启动。首次安装的软件包可能已创建开机链接，但 UCI 默认关闭，仍不会启动 FRP 进程。
+UCI `enabled=1` 控制服务是否允许运行，`init.d enable` 控制开机启动。初始 UCI 状态为关闭，即使安装时已创建启动链接，服务也不会自动运行。
 
-## 配置 frps 服务端
+## 服务端配置
 
-通常服务端运行在公网服务器，路由器只安装 frpc。如果确实要在路由器运行 frps：
+服务端通常部署在具备公网入口的主机上。在 OpenWrt / ImmortalWrt 上部署时，配置步骤如下：
 
-1. 修改 `/etc/frp/frps.toml` 中的 token，与客户端一致。
+1. 设置 `/etc/frp/frps.toml` 中的认证口令，与客户端保持一致。
 2. 默认 `bindAddr` 和 `proxyBindAddr` 都是 `127.0.0.1`，只供本机访问。需要外部连接时，明确改为需要监听的地址；监听所有 IPv4 地址使用 `0.0.0.0`。
 3. `allowPorts` 限定客户端可申请的代理端口；示例仅允许 6000。
 4. 根据实际网络，在路由器防火墙/公网服务器安全组中放行控制端口与代理端口。本包不会自动开放它们。
@@ -156,9 +156,9 @@ uci commit frps
 logread -e frps
 ```
 
-示例启用 TLS 加密和 token 认证；如需验证服务端证书身份，应按 [FRP TLS 文档](https://gofrp.org/en/docs/features/common/network/network-tls/) 配置可信 CA/证书。不要把 token、真实配置或私钥提交到 GitHub。
+示例启用 TLS 加密和 token 认证；如需验证服务端证书身份，应按 [FRP TLS 文档](https://gofrp.org/en/docs/features/common/network/network-tls/) 配置可信 CA/证书。认证口令与私钥应在部署环境中管理，不纳入版本控制。
 
-## 日常管理、升级与旧包迁移
+## 服务管理与配置迁移
 
 ```sh
 /etc/init.d/frpc restart   # 修改 TOML 后重启使其生效
@@ -168,38 +168,38 @@ uci set frpc.main.enabled='0'
 uci commit frpc
 ```
 
-服务端把命令中的 `frpc` 换为 `frps`。reload 会停止并重新启动进程，已有隧道连接会短暂断开；没有承诺无损热更新。UCI 改动支持 procd reload 触发，手工编辑 TOML 后请明确 restart。
+服务端使用对应的 `frps` 命令。reload 通过重启进程加载配置，期间现有隧道连接会中断。UCI 变更支持 procd reload 触发；直接编辑 TOML 后需执行 restart。
 
 默认配置以 OpenWrt `conffiles` 声明，正常升级时由包管理器保留；如果有 `.opkg-dist` / `.apk-new` 等新配置文件，需比较后合并。自定义 `config_file` 指向的其他文件请自行纳入备份，不在默认两个 TOML 文件的保留清单内。
 
-从官方包、kuoruan 旧包或 LuCI 配置迁移前，先备份 `/etc/config/frpc`、`/etc/config/frps`、`/etc/frp`。本包只读取 `main` 节的 `enabled` 与 `config_file`，不会读取旧的 UCI proxy 配置列表。手动建立本文的 UCI 节和 TOML，校验成功后再启用；不要继续使用会覆盖这些文件的旧 LuCI 页面。
+从官方包、kuoruan 旧包或 LuCI 配置迁移前，先备份 `/etc/config/frpc`、`/etc/config/frps`、`/etc/frp`。本包只读取 `main` 节的 `enabled` 与 `config_file`，不会读取旧的 UCI proxy 配置列表。迁移时按本文建立 UCI 节与 TOML，校验通过后启用服务，并停用会覆盖配置的旧版 LuCI 管理组件。
 
-这是独立维护的同名包，切换来源时可能出现“版本相同”的情况；同版本切换应通过重编固件或确认来源后显式重新安装处理。只安装与你的固件系列、架构、libc 和包格式匹配的产物；snapshot CI 产物不保证适用于现有稳定版固件。
+本项目与官方 feed 使用相同包名。同版本切换来源时，需重新构建固件或显式重新安装目标来源的软件包。安装产物应与固件系列、架构、libc 及包格式匹配；snapshot 产物的兼容范围以对应 SDK 为准。
 
-## 自动追踪上游如何工作
+## 自动更新
 
-`Update FRP` 每天检查 GitHub 的 `releases/latest`：
+`Update FRP` 每天北京时间 10:23（UTC 02:23）检查上游 `releases/latest`，也支持在 [Actions](https://github.com/itwxf0818/openwrt-frp/actions/workflows/update-frp.yml) 手动触发。定时执行可能因 GitHub 调度延迟。
 
 1. 拒绝 draft、prerelease 和非 `v数字.数字.数字` 标签；按数字比较，避免降级。
-2. 下载 `codeload.github.com/fatedier/frp/tar.gz/v版本`，计算真正的 SHA256，并确认源码包含正确的 Go module。
+2. 下载 `codeload.github.com/fatedier/frp/tar.gz/v版本`，计算 SHA256，并确认源码包含正确的 Go module。
 3. 生成候选 Makefile，修改 `PKG_VERSION` / `PKG_HASH`，将 `PKG_RELEASE` 重置为 1。
 4. 在同一次运行中调用完整构建：静态检查、更新器回归测试、原生隧道测试、四类 CPU 交叉编译、三组官方 SDK 软件包构建。
-5. **只有全部通过**且默认分支自检查开始后没有变化，才由 GitHub Actions bot 提交 Makefile；不强推，不自动改路由器配置、不自动给路由器升级。
+5. 全部验证通过、且默认分支在构建期间未发生变更时，由 GitHub Actions bot 提交 Makefile。更新范围仅限源码包版本与校验信息。
 
-这里有意在提交前完成验证：使用 `GITHUB_TOKEN` 的机器人提交通常不会再触发另一轮 push 工作流，不能依赖“先提交再等另一个流程来构建”。新的包产物就在这次 `Update FRP` 的运行页面中。
+验证在版本提交前完成，并与更新任务处于同一次工作流中，避免依赖 `GITHUB_TOKEN` 提交后的 push 触发行为。构建产物可在对应运行页面的 Artifacts 中获取。
 
 GitHub latest 是上游指定的最新稳定 Release，不扫描所有标签排序，也不会追踪预览版。同一版本标签若被重新打包，不会自动信任新 hash；已有构建会因 hash 不匹配而失败，留给维护者调查。
 
-### 权限与长期维护
+### 维护说明
 
 - 使用仓库内置 `GITHUB_TOKEN`，无需个人访问令牌。检查和构建只有读取权限，提交 job 才获得 `contents: write`。
 - 如果组织策略禁止写入，或默认分支保护不允许机器人直接提交，提交步骤会失败并保留日志，不会绕过保护。维护者可审阅已验证的候选 Makefile，再用 PR 更新。
 - Actions 在长期无活动的公开仓库可能暂停定时任务；留意 GitHub 邮件/Actions 页面，必要时重新启用。
 - SDK 使用官方 snapshot，通过 HTTPS 获取同源 SHA256 清单校验完整性；这不是额外签名验证。产物包含 SDK URL/hash、feed commit 和构建配置，便于重现与诊断。需要严格长期重现时应保存 SDK 和完整 feed commit 对应源码。
-- 不保证未来上游 API、Go、SDK 或 Actions 永不变化。失败会停止发布，维护者应查看日志。Dependabot 每月检查 Actions 依赖更新。
+- 上游 API、工具链或 SDK 变更导致验证失败时，自动更新将暂停提交并保留日志。Dependabot 每月检查 Actions 依赖更新。
 - Actions 产物保留 14 天，候选 Makefile 保留 7 天；不自动发布二进制 Release。
 
-## 本地验证与故障排查
+## 构建与验证
 
 Python 3.11+，脚本只用标准库：
 
@@ -226,13 +226,13 @@ Ubuntu 上安装与 CI 相同的依赖后，可运行完整 SDK 验证：
 bash scripts/build-sdk.sh immortalwrt x86/64
 ```
 
-每次使用干净工作目录运行 SDK 构建。SDK 成功后 `dist/` 中有 `.ipk` 或 `.apk` 及来源记录。ARM / MIPS 原始 Go 交叉编译仅检查编译可行性，不等于这些 CPU 的 OpenWrt 包和真机测试通过。
+每次使用干净工作目录运行 SDK 构建。SDK 成功后 `dist/` 中有 `.ipk` 或 `.apk` 及来源记录。ARM / MIPS 原始 Go 交叉编译仅检查编译可行性，软件包兼容性与设备运行情况仍需通过 SDK 和实机验证。
 
 | 现象 | 处理 |
 | --- | --- |
 | 提示找不到 golang-package.mk | 更新标准 packages feed，确认名称是 packages |
 | 提示需要更高版本 Go | 检查 feed 的 Go 主机工具链版本；使用匹配的较新构建分支 |
-| 编出来的仍是旧 FRP | 最后执行 `feeds install -f -p frp_custom frp`，排查 package 目录中的重复包 |
+| 构建版本与预期不符 | 最后执行 `feeds install -f -p frp_custom frp`，排查 package 目录中的重复包 |
 | 下载 hash 不一致 | 先检查上游/镜像/SDK 是否轮换；不要用 `skip` 绕过校验 |
 | 服务没有进程 | 检查 UCI enabled、main 节、示例 token 和 `frpc/frps verify` 输出 |
 | 登录或端口注册失败 | 检查服务地址、token、TLS、allowPorts、防火墙和日志 |
@@ -247,7 +247,7 @@ files/                     两组 procd、UCI、TOML
 scripts/                   检查上游、源码/SDK 下载、构建、隧道验证
 tests/                     更新器与服务脚本回归测试
 .github/workflows/         构建与定时更新
-docs/                      上传说明、验证记录、参考来源
+docs/                      发布说明、验证记录、参考来源
 ```
 
 详细来源与差异见 [SOURCES.md](docs/SOURCES.md)。本项目遵循 Apache-2.0，FRP 本身也采用 Apache-2.0；SDK/Go 构建框架仍受其各自许可证约束。本项目没有打包这些构建框架或旧项目源码。
