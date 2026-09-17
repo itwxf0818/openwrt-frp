@@ -2,7 +2,7 @@
 
 [![Build and validate](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml/badge.svg)](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)
 
-面向 OpenWrt 与 ImmortalWrt 的 FRP 软件包源，提供 `frpc` 客户端与 `frps` 服务端的源码构建、服务管理和上游版本跟踪。
+面向 OpenWrt 与 ImmortalWrt 的 FRP 软件包源，用于在固件编译时替换内置旧版 `frpc` / `frps`，持续跟踪上游稳定版本。
 
 基于 [fatedier/frp](https://github.com/fatedier/frp)，采用原生 TOML 配置与 procd 进程管理。稳定版更新经自动化验证后合入，当前软件包版本见 [Makefile](Makefile)。
 
@@ -10,10 +10,42 @@
 
 ## 快速导航
 
-- [Feed 集成](#feed-集成) · [独立软件包集成](#独立软件包集成)
+- [Feed 集成](#feed-集成) · [构建要求](#构建要求)
 - [客户端配置](#客户端配置) · [服务端配置](#服务端配置)
 - [自动更新](#自动更新) · [构建与验证](#构建与验证)
 - [验证记录](docs/VALIDATION.md) · [仓库发布](docs/UPLOAD.md)
+
+## Feed 集成
+
+已在 ImmortalWrt 编译配置中启用 `frpc` / `frps` 时，添加本源并覆盖内置包即可沿用原有选项，后续按原流程编译固件。
+
+**1. 添加源**
+
+在源码根目录的 `feeds.conf.default` 中添加一行（若使用 `feeds.conf`，则写入该文件）：
+
+```text
+src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
+```
+
+**2. 指定使用本源的 FRP**
+
+在原有的 feeds 更新、安装步骤之后追加一条命令：
+
+```sh
+./scripts/feeds install -f -p frp_custom frp
+```
+
+完整的 feeds 阶段如下；已有前两行的编译脚本只需追加最后一行：
+
+```sh
+./scripts/feeds update -a
+./scripts/feeds install -a
+./scripts/feeds install -f -p frp_custom frp
+```
+
+随后照常编译固件，无需重新选择 FRP，也无需单独编译软件包。保留最后一行，后续更新 feeds 时即可继续使用本源版本。
+
+> 此处沿用的是固件编译选项。当前软件包采用原生 TOML 与独立服务配置；旧版 UCI/LuCI 配置需按[迁移说明](#服务管理与配置迁移)处理。
 
 ## 特性
 
@@ -39,44 +71,8 @@
 - 旧版固件分支需确认 Go 工具链满足上游要求。版本不足时，应按对应分支规范更新 Go 构建支持，或固定兼容的 FRP 版本。
 - 目标设备需具备足够的内存与存储空间，资源需求以实际构建产物和运行负载为准。
 
-## Feed 集成
-
-在 OpenWrt / ImmortalWrt 源码根目录操作。向 `feeds.conf.default` 添加以下源：
-
-```text
-src-git frp_custom https://github.com/itwxf0818/openwrt-frp.git;main
-```
-
-然后：
-
-```sh
-./scripts/feeds update -a
-./scripts/feeds install -a
-# 覆盖 packages feed 中的同名软件包
-./scripts/feeds install -f -p frp_custom frp
-
-readlink -f package/feeds/frp_custom/frp
-grep '^PKG_VERSION:=' feeds/frp_custom/Makefile
-make menuconfig
-```
-
-在菜单中选择：
-
-```text
-Network → Web Servers/Proxies → frpc / frps
-```
-
-`<*>` 将软件包编入固件，`<M>` 仅生成安装包。客户端与服务端可独立选择。
-
-```sh
-make defconfig
-make package/feeds/frp_custom/frp/download V=s
-make package/feeds/frp_custom/frp/compile -j2 V=s
-```
-
-完成后可继续构建完整固件。重新执行 `feeds install -a` 时，应再次指定 `install -f -p frp_custom frp`，保持同名包的来源优先级。源码树内应只启用一份 FRP 包定义。
-
-若源码树存在独立的 `feeds.conf`，请将源配置写入该文件。
+<details>
+<summary>其他方式：独立软件包集成</summary>
 
 ## 独立软件包集成
 
@@ -99,6 +95,8 @@ git -C package/frp pull --ff-only
 ```
 
 此方式同样依赖 `feeds/packages/lang/golang`，无需额外添加 `frp_custom` feed。
+
+</details>
 
 ## 客户端配置
 
