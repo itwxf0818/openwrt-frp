@@ -2,8 +2,8 @@ name: Update FRP
 
 on:
   schedule:
-    # Beijing (UTC+8): 07:00, 13:00, 20:00 every day.
-    - cron: '0 5,12,23 * * *'
+    # Beijing (UTC+8): 07:00 every day.
+    - cron: '0 23 * * *'
   workflow_dispatch:
 
 permissions:
