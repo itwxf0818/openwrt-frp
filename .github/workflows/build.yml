@@ -43,7 +43,7 @@ jobs:
           shellcheck scripts/*.sh tests/*.sh
       - name: Verify exact upstream archive
         run: python3 scripts/fetch-source.py
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: work/source/go.mod
           cache: false
