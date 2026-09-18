@@ -34,7 +34,13 @@ class ReleaseAssets(unittest.TestCase):
             self.fixture(root / "inputs")
             output = root / "output"
             assets.prepare(root / "inputs", output)
-            self.assertEqual(len(list(output.glob("*.apk"))), 8)
+            identity = assets.identity()
+            expected = {
+                f"{name}_{identity['version']}-r{identity['revision']}_{arch}.apk"
+                for name in ("frpc", "frps") for arch in assets.TARGETS.values()
+            }
+            self.assertEqual({p.name for p in output.glob("*.apk")}, expected)
+            self.assertTrue((output / "frp-build-provenance.zip").is_file())
             for line in (output / "SHA256SUMS").read_text().splitlines():
                 checksum, name = line.split("  ")
                 self.assertEqual(assets.digest(output / name), checksum)

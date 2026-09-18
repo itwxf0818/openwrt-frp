@@ -86,7 +86,7 @@ def prepare(inputs, output):
             shutil.copyfile(package, output / dest)
         for name in ("sdk-provenance.json", "sdk.config", "feed-commits.txt", "feeds.conf.used", "build-metadata.json"):
             provenance.append((directory / name, target.replace("/", "-") + "/" + name))
-    with zipfile.ZipFile(output / "build-provenance.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+    with zipfile.ZipFile(output / "frp-build-provenance.zip", "w", zipfile.ZIP_DEFLATED) as archive:
         for path, name in provenance:
             archive.write(path, name)
     checksums = "".join(f"{digest(p)}  {p.name}\n" for p in sorted(output.iterdir()))

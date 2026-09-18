@@ -15,9 +15,16 @@ archives=("$repo"/work/sdk-download/*-sdk-*.tar.*)
 [[ ${#archives[@]} == 1 ]]
 tar -xf "${archives[0]}" -C "$repo/work/sdk" --strip-components=1
 cd "$repo/work/sdk"
-# Relocated SDKs can retain the original builder's OpenSSL config path.
-export OPENSSL_CONF=/etc/ssl/openssl.cnf
-[[ -f "$OPENSSL_CONF" ]]
+# SDK LibreSSL cannot load Ubuntu's OpenSSL 3 provider configuration.
+# Key generation needs no configuration modules.
+export OPENSSL_CONF=/dev/null
+(
+    umask 077
+    /usr/bin/openssl ecparam -name prime256v1 -genkey -noout -out private-key.pem
+)
+/usr/bin/openssl ec -in private-key.pem -pubout -out public-key.pem
+[[ -s private-key.pem && -s public-key.pem ]]
+staging_dir/host/bin/openssl ec -in private-key.pem -check -noout
 # Preserve SDK-pinned feed revisions, including its Go toolchain recipe.
 ./scripts/feeds update -a
 ./scripts/feeds install -a

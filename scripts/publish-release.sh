@@ -29,7 +29,7 @@ FRP **${version}**，软件包修订 **${revision}**。
 
 升级前备份配置；旧版 LuCI 的 INI 专用配置需按说明选择兼容模式。软件包构建测试不等于所有目标设备都已实测。
 
-SHA256SUMS 提供文件校验值，build-provenance.zip 保存 SDK 和 feed 来源。下方 Source code 为源码归档。
+SHA256SUMS 提供文件校验值，frp-build-provenance.zip 保存 SDK 和 feed 来源。下方 Source code 为源码归档。
 
 每种架构附有 frp_架构.pem 公钥。确认信任本项目并核对校验值后，将对应公钥放入 /etc/apk/keys/，再安装 APK；不需要关闭签名验证。私钥不发布。
 

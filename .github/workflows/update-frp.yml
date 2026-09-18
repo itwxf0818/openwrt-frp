@@ -89,7 +89,7 @@ jobs:
           fi
       - uses: actions/download-artifact@v8
         with:
-          pattern: packages-*
+          pattern: frp-packages-*
           path: work/release-input
       - name: Publish validated packages
         env:

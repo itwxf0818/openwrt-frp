@@ -129,7 +129,7 @@ jobs:
         run: bash scripts/build-sdk.sh "$DISTRIBUTION" "$TARGET" "$RELEASE"
       - uses: actions/upload-artifact@v7
         with:
-          name: packages-${{ matrix.name }}
+          name: frp-packages-${{ matrix.name }}
           path: dist/
           if-no-files-found: error
           retention-days: 14
