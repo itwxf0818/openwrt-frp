@@ -24,7 +24,18 @@ export OPENSSL_CONF=/dev/null
 )
 /usr/bin/openssl ec -in private-key.pem -pubout -out public-key.pem
 [[ -s private-key.pem && -s public-key.pem ]]
-staging_dir/host/bin/openssl ec -in private-key.pem -check -noout
+/usr/bin/openssl ec -in private-key.pem -check -noout
+staging_dir/host/bin/openssl ec -in private-key.pem -pubout -out sdk-public-key.pem
+cmp public-key.pem sdk-public-key.pem
+# Exercise this SDK's actual APK signing tools before the expensive compilation.
+probe=$(mktemp -d "$repo/work/signing-probe.XXXXXX")
+mkdir -p "$probe/files"
+printf 'signing preflight\n' > "$probe/files/probe.txt"
+staging_dir/host/bin/apk mkpkg --info 'name:frp-signing-probe' --info 'version:1.0-r1' \
+    --info 'arch:noarch' --info 'description:FRP signing preflight' --info 'license:MIT' \
+    --files "$probe/files" --output "$probe/probe.apk"
+staging_dir/host/bin/apk adbsign --allow-untrusted --reset-signatures --sign "$PWD/private-key.pem" "$probe/probe.apk"
+staging_dir/host/bin/apk --keys-dir "$PWD" verify "$probe/probe.apk"
 # Preserve SDK-pinned feed revisions, including its Go toolchain recipe.
 ./scripts/feeds update -a
 ./scripts/feeds install -a
