@@ -96,6 +96,18 @@ jobs:
             target: x86/64
             name: immortalwrt-25.12.2-x86_64
             release: '25.12.2'
+          - distribution: immortalwrt
+            target: mediatek/filogic
+            name: immortalwrt-25.12.2-aarch64
+            release: '25.12.2'
+          - distribution: immortalwrt
+            target: ipq40xx/generic
+            name: immortalwrt-25.12.2-armv7
+            release: '25.12.2'
+          - distribution: immortalwrt
+            target: ramips/mt7621
+            name: immortalwrt-25.12.2-mipsel
+            release: '25.12.2'
     steps:
       - uses: actions/checkout@v4
         with:

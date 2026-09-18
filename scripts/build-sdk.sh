@@ -49,3 +49,4 @@ for binary in frpc frps; do
     for package in "${packages[@]}"; do [[ ! -f "$package" ]] || found=1; done
     [[ $found == 1 ]] || { echo "Missing package: $binary"; exit 1; }
 done
+python3 "$repo/scripts/release-assets.py" record "$repo/dist" "$distribution" "$target" "$release"

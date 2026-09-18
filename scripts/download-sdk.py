@@ -8,7 +8,7 @@ from upstream import fetch
 
 p = argparse.ArgumentParser()
 p.add_argument("distribution", choices=["openwrt", "immortalwrt"])
-p.add_argument("target", choices=["x86/64", "mediatek/filogic"])
+p.add_argument("target", choices=["x86/64", "mediatek/filogic", "ipq40xx/generic", "ramips/mt7621"])
 p.add_argument("output", type=Path)
 p.add_argument("--release", default="snapshot")
 a = p.parse_args()

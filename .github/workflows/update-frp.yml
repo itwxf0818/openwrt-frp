@@ -87,28 +87,12 @@ jobs:
             git add frp/Makefile
             git checkout --detach FETCH_HEAD
           fi
-      - name: Publish the validated source release
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: packages-*
+          path: work/release-input
+      - name: Publish validated packages
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ needs.check.outputs.version }}
-        run: |
-          set -euo pipefail
-          tag="v${VERSION}-r1"
-          commit=$(git rev-parse HEAD)
-          if gh release view "$tag" >/dev/null 2>&1; then
-            published=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq '.object.sha')
-            test "$published" = "$commit" || { echo 'Existing release points to a different commit.'; exit 1; }
-            echo "Release $tag already exists."
-            exit 0
-          fi
-          cat > "$RUNNER_TEMP/frp-release.md" <<EOF
-          FRP 核心：**${VERSION}**；软件包：**${VERSION}-r1**。
-
-          自动跟踪上游稳定版本，源码校验、INI/TOML 测试及四组 SDK 构建全部通过后发布。
-
-          这是编译用的源码发布。Source code 压缩包不是刷机固件或可直接安装的软件包。
-
-          [使用说明](https://github.com/$GH_REPO/blob/$tag/README.md) · [本次构建](https://github.com/$GH_REPO/actions/runs/$GITHUB_RUN_ID)
-          EOF
-          gh release create "$tag" --target "$commit" --title "FRP $tag" --notes-file "$RUNNER_TEMP/frp-release.md" --latest
+        run: bash scripts/publish-release.sh work/release-input
