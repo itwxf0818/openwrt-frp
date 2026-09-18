@@ -30,3 +30,14 @@
 | OpenWrt snapshot x86/64 | 通过 |
 
 已下载并检查本轮 ImmortalWrt master x86 产物，包含 frpc/frps 0.71.0-r3 APK 和 SDK/feed 来源记录。SDK 为官方 snapshot `immortalwrt-sdk-x86-64_gcc-14.4.0_musl.Linux-x86_64.tar.zst`，SHA256 为 `7de81f3f74f78bc8195ead9ae887d6caa1c1834ab92d1d6c4393f6267d882fe7`。尚未在用户设备上执行升级、LuCI 页面操作或服务重启测试；SDK 构建成功不等于这些实机测试已完成。
+
+
+## 多架构安装包发布（2026-09-18）
+
+提交 `776992a` 的[完整发布构建](https://github.com/itwxf0818/openwrt-frp/actions/runs/35297677694)已通过：源码检查、INI/TOML 运行测试、四类 CPU 交叉编译，以及七组官方 SDK 构建。
+
+SDK 覆盖 ImmortalWrt snapshot x86/64、mediatek/filogic，OpenWrt snapshot x86/64，以及 ImmortalWrt 25.12.2 的 x86/64、mediatek/filogic、ipq40xx/generic、ramips/mt7621。各任务先验证 SDK 密钥兼容性和小包签名，再编译并严格验证 frpc/frps APK 签名。
+
+[发布 v0.71.0-3](https://github.com/itwxf0818/openwrt-frp/releases/tag/v0.71.0-3)包含稳定版 SDK 生成的 8 个 APK、4 个公钥、构建来源归档及 SHA256SUMS，共 14 个附件。已核对全部 APK 文件名和校验清单中的 13 个文件摘要与 GitHub 资产摘要一致。安装包名称为 `frpc_0.71.0-r3_架构.apk` / `frps_0.71.0-r3_架构.apk`。
+
+此前失败来自 SDK 签名工具及 OpenSSL/LibreSSL 配置、参数差异，已修复；未修改设备端 FRP 启动和配置逻辑。以上验证不代表四类架构都已完成实机安装测试。
