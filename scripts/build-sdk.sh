@@ -57,7 +57,8 @@ for package in "$repo"/dist/*.apk; do
     [[ -f "$package" ]] || continue
     # Stable SDKs sign repository indexes, but leave individual APKs unsigned.
     # Release downloads need their own signature for standalone installation.
-    staging_dir/host/bin/apk adbsign --reset-signatures --sign "$PWD/private-key.pem" "$package"
+    # Accept unsigned input only while signing our own freshly built artifact.
+    staging_dir/host/bin/apk adbsign --allow-untrusted --reset-signatures --sign "$PWD/private-key.pem" "$package"
     staging_dir/host/bin/apk --keys-dir "$repo/dist" verify "$package"
 done
 python3 "$repo/scripts/release-assets.py" record "$repo/dist" "$distribution" "$target" "$release"
