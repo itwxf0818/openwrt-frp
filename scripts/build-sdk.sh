@@ -49,4 +49,8 @@ for binary in frpc frps; do
     for package in "${packages[@]}"; do [[ ! -f "$package" ]] || found=1; done
     [[ $found == 1 ]] || { echo "Missing package: $binary"; exit 1; }
 done
+cp public-key.pem "$repo/dist/public-key.pem"
+for package in "$repo"/dist/*.apk; do
+    [[ ! -f "$package" ]] || staging_dir/host/bin/apk --keys-dir "$repo/dist" verify "$package"
+done
 python3 "$repo/scripts/release-assets.py" record "$repo/dist" "$distribution" "$target" "$release"

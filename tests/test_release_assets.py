@@ -19,6 +19,7 @@ class ReleaseAssets(unittest.TestCase):
             directory = root / target.replace("/", "-")
             directory.mkdir(parents=True)
             (directory / "sdk.config").write_text(f'CONFIG_TARGET_ARCH_PACKAGES="{arch}"\n')
+            (directory / "public-key.pem").write_text("fixture public key\n")
             for name in ("sdk-provenance.json", "feed-commits.txt", "feeds.conf.used"):
                 (directory / name).write_text("fixture\n")
             for name in ("frpc", "frps"):

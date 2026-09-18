@@ -31,10 +31,12 @@ FRP **${version}**，软件包修订 **${revision}**。
 
 SHA256SUMS 提供文件校验值，build-provenance.zip 保存 SDK 和 feed 来源。下方 Source code 为源码归档。
 
+每种架构附有 frp_架构.pem 公钥。确认信任本项目并核对校验值后，将对应公钥放入 /etc/apk/keys/，再安装 APK；不需要关闭签名验证。私钥不发布。
+
 [使用与安装说明](https://github.com/$GH_REPO/blob/$tag/README.md) · [配置说明](https://github.com/$GH_REPO/blob/$tag/docs/CONFIGURATION.md) · [本次构建](https://github.com/$GH_REPO/actions/runs/$GITHUB_RUN_ID)
 EOF
 if gh release view "$tag" >/dev/null 2>&1; then
-    published=$(gh api "repos/$GH_REPO/git/ref/tags/$tag" --jq '.object.sha')
+    published=$(gh release view "$tag" --json targetCommitish --jq '.targetCommitish')
     test "$published" = "$commit" || { echo 'Release tag points to another commit.'; exit 1; }
     draft=$(gh release view "$tag" --json isDraft --jq '.isDraft')
     if [[ "$draft" == false ]]; then

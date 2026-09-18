@@ -34,7 +34,8 @@ def record(directory, distribution, target, channel):
     if not match:
         raise ValueError("SDK package architecture is missing")
     data = dict(identity(), distribution=distribution, target=target,
-                channel=channel, architecture=match[1], packages={})
+                channel=channel, architecture=match[1], packages={},
+                public_key_hash=digest(directory / "public-key.pem"))
     for name in ("frpc", "frps"):
         candidates = list(directory.glob(f"{name}_*.ipk")) + list(directory.glob(f"{name}-*.apk"))
         if len(candidates) != 1:
@@ -69,6 +70,10 @@ def prepare(inputs, output):
     output.mkdir(parents=True, exist_ok=True)
     provenance = []
     for target, (directory, data) in selected.items():
+        key = directory / "public-key.pem"
+        if digest(key) != data["public_key_hash"] or b"PRIVATE KEY" in key.read_bytes():
+            raise ValueError("Invalid package verification key")
+        shutil.copyfile(key, output / f"frp_{data['architecture']}.pem")
         for name in ("frpc", "frps"):
             item = data["packages"][name]
             filename = f"{name}-{wanted['version']}-r{wanted['revision']}.apk"

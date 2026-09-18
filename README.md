@@ -60,6 +60,15 @@ bash ./feeds/frp_custom/scripts/install-feed.sh
 
 升级前备份配置，并阅读[旧 LuCI / INI 配置说明](docs/CONFIGURATION.md)。新装默认关闭，需先配置。安装包由 SDK 构建验证；目前实机反馈覆盖 x86_64，其余架构尚待实机验证。每次发布附 `SHA256SUMS` 与构建来源记录。
 
+直接安装示例（ImmortalWrt 25.12.2、x86_64）：从同一 Release 下载客户端 APK、`frp_x86_64.pem` 公钥及 `SHA256SUMS`。核对所下载文件的 SHA256 并确认信任本项目后，将文件上传到路由器，在所在目录执行：
+
+```sh
+cp frp_x86_64.pem /etc/apk/keys/
+apk add ./frpc_0.71.0-r3_x86_64.apk
+```
+
+文件名随版本变化。服务端对应 `frps`，其他架构使用对应安装包和公钥；不要跳过依赖或签名检查。
+
 ## 自动更新
 
 每天北京时间 **07:00** 检查上游稳定版。没有新版时只检查，不重复构建。发现新版后，更新版本和源码校验值，测试及七组 SDK 构建全部通过后自动提交，并发布到 [Releases](https://github.com/itwxf0818/openwrt-frp/releases)，例如 `v0.71.1-1`。
