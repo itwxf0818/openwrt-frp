@@ -20,11 +20,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - if: inputs.candidate
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: candidate
           path: frp
@@ -43,7 +43,7 @@ jobs:
           shellcheck scripts/*.sh tests/*.sh
       - name: Verify exact upstream archive
         run: python3 scripts/fetch-source.py
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: work/source/go.mod
           cache: false
@@ -109,11 +109,11 @@ jobs:
             name: immortalwrt-25.12.2-mipsel
             release: '25.12.2'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - if: inputs.candidate
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: candidate
           path: frp
@@ -127,7 +127,7 @@ jobs:
           TARGET: ${{ matrix.target }}
           RELEASE: ${{ matrix.release }}
         run: bash scripts/build-sdk.sh "$DISTRIBUTION" "$TARGET" "$RELEASE"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: packages-${{ matrix.name }}
           path: dist/

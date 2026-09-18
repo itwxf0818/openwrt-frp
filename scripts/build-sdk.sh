@@ -15,6 +15,9 @@ archives=("$repo"/work/sdk-download/*-sdk-*.tar.*)
 [[ ${#archives[@]} == 1 ]]
 tar -xf "${archives[0]}" -C "$repo/work/sdk" --strip-components=1
 cd "$repo/work/sdk"
+# Relocated SDKs can retain the original builder's OpenSSL config path.
+export OPENSSL_CONF=/etc/ssl/openssl.cnf
+[[ -f "$OPENSSL_CONF" ]]
 # Preserve SDK-pinned feed revisions, including its Go toolchain recipe.
 ./scripts/feeds update -a
 ./scripts/feeds install -a
@@ -51,6 +54,10 @@ for binary in frpc frps; do
 done
 cp public-key.pem "$repo/dist/public-key.pem"
 for package in "$repo"/dist/*.apk; do
-    [[ ! -f "$package" ]] || staging_dir/host/bin/apk --keys-dir "$repo/dist" verify "$package"
+    [[ -f "$package" ]] || continue
+    # Stable SDKs sign repository indexes, but leave individual APKs unsigned.
+    # Release downloads need their own signature for standalone installation.
+    staging_dir/host/bin/apk adbsign --reset-signatures --sign "$PWD/private-key.pem" "$package"
+    staging_dir/host/bin/apk --keys-dir "$repo/dist" verify "$package"
 done
 python3 "$repo/scripts/release-assets.py" record "$repo/dist" "$distribution" "$target" "$release"
