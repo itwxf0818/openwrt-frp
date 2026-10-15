@@ -6,7 +6,7 @@
 
 沿用 ImmortalWrt master 官方 LuCI 和 UCI 配置，支持 TOML，保留 INI 兼容模式。
 
-已验证 ImmortalWrt 25.12-SNAPSHOT x86/64 实机升级，服务端显示 FRPC **v0.71.0 在线**。[验证范围](docs/VALIDATION.md)
+已验证 ImmortalWrt 25.12-SNAPSHOT x86/64 实机升级，服务端显示 FRPC **v0.71.1 在线**。[验证范围](docs/VALIDATION.md)
 
 ## 使用
 
