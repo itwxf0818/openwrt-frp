@@ -1,12 +1,13 @@
 # FRP for ImmortalWrt / OpenWrt
 
 [![Build and validate](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml/badge.svg)](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)
+[![最新发布版本](https://img.shields.io/github/v/release/itwxf0818/openwrt-frp?label=FRP&color=blue)](https://github.com/itwxf0818/openwrt-frp/releases/latest)
 
 用于编译固件时更新内置的 `frpc` / `frps`，自动跟踪 [FRP 官方稳定版](https://github.com/fatedier/frp/releases/latest)。
 
 沿用 ImmortalWrt master 官方 LuCI 和 UCI 配置，支持 TOML，保留 INI 兼容模式。
 
-已验证 ImmortalWrt 25.12-SNAPSHOT x86/64 实机升级，服务端显示 FRPC **v0.71.1 在线**。[验证范围](docs/VALIDATION.md)
+已验证 ImmortalWrt 25.12-SNAPSHOT x86/64 实机升级，服务端显示 FRPC **在线**。[验证范围](docs/VALIDATION.md)
 
 ## 使用
 
