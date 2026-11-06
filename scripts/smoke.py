@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify sample TOML and pass real HTTP traffic through frpc -> frps locally."""
+"""Verify configuration, real tunnel traffic and embedded web assets locally."""
 import argparse
 from html.parser import HTMLParser
 import http.server
@@ -85,12 +85,12 @@ control, remote = free_port(), free_port()
 while remote == control:
     remote = free_port()
 dashboard_ports = {}
-if a.format == "toml":
-    for name in binaries:
+dashboard_services = ("frps", "frpc") if a.format == "toml" else ("frps",)
+for name in dashboard_services:
+    port = free_port()
+    while port in (control, remote, *dashboard_ports.values()):
         port = free_port()
-        while port in (control, remote, *dashboard_ports.values()):
-            port = free_port()
-        dashboard_ports[name] = port
+    dashboard_ports[name] = port
 processes = []
 logs = []
 with tempfile.TemporaryDirectory() as tmp:
@@ -116,17 +116,17 @@ localIP = "127.0.0.1"
 localPort = {server.server_port}
 remotePort = {remote}
 ''')
-    for name, port in dashboard_ports.items():
-        path = root / f"{name}.toml"
-        config = f"""
+    if a.format == "toml":
+        for name, port in dashboard_ports.items():
+            with (root / f"{name}.toml").open("a") as config:
+                config.write(f"""
 [webServer]
 addr = "127.0.0.1"
 port = {port}
 user = "smoke"
 password = "test-only-local-password"
-"""
-        path.write_text(path.read_text() + config)
-    if a.format == "ini":
+""")
+    else:
         (root / "frps.ini").write_text(f"""[common]
 bind_addr = 127.0.0.1
 bind_port = {control}
@@ -135,6 +135,10 @@ authentication_method = token
 token = test-only-local-token
 tls_only = true
 allow_ports = {remote}
+dashboard_addr = 127.0.0.1
+dashboard_port = {dashboard_ports["frps"]}
+dashboard_user = smoke
+dashboard_pwd = test-only-local-password
 """)
         (root / "frpc.ini").write_text(f"""[common]
 server_addr = 127.0.0.1
