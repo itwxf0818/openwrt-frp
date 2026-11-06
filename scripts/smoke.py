@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Verify sample TOML and pass real HTTP traffic through frpc -> frps locally."""
 import argparse
+from html.parser import HTMLParser
 import http.server
 from pathlib import Path
 import socket
@@ -8,6 +9,7 @@ import subprocess
 import tempfile
 import threading
 import time
+from urllib.parse import urljoin
 import urllib.request
 from upstream import ROOT, metadata
 
@@ -29,6 +31,44 @@ def free_port():
         return s.getsockname()[1]
 
 
+class DashboardPage(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.scripts = []
+        self.styles = []
+
+    def handle_starttag(self, tag, attributes):
+        attrs = dict(attributes)
+        if tag == "script" and attrs.get("type") == "module" and attrs.get("src"):
+            self.scripts.append(attrs["src"])
+        if tag == "link" and attrs.get("rel") == "stylesheet" and attrs.get("href"):
+            self.styles.append(attrs["href"])
+
+
+def check_dashboard(service, port):
+    url = f"http://127.0.0.1:{port}/"
+    passwords = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+    passwords.add_password(None, url, "smoke", "test-only-local-password")
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({}), urllib.request.HTTPBasicAuthHandler(passwords)
+    )
+    with opener.open(url, timeout=5) as response:
+        assert response.headers.get_content_type() == "text/html", service
+        base = response.geturl()
+        page = DashboardPage()
+        page.feed(response.read().decode())
+    assert page.scripts, f"{service}: no dashboard entry script"
+    for paths, content_types in (
+        (page.scripts, ("text/javascript", "application/javascript")),
+        (page.styles, ("text/css",)),
+    ):
+        for path in paths:
+            with opener.open(urljoin(base, path), timeout=5) as response:
+                assert response.headers.get_content_type() in content_types, (service, path)
+                assert response.read(), (service, path)
+    print(f"PASS: {service} serves its embedded dashboard HTML and linked assets")
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -44,6 +84,13 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 control, remote = free_port(), free_port()
 while remote == control:
     remote = free_port()
+dashboard_ports = {}
+if a.format == "toml":
+    for name in binaries:
+        port = free_port()
+        while port in (control, remote, *dashboard_ports.values()):
+            port = free_port()
+        dashboard_ports[name] = port
 processes = []
 logs = []
 with tempfile.TemporaryDirectory() as tmp:
@@ -69,6 +116,16 @@ localIP = "127.0.0.1"
 localPort = {server.server_port}
 remotePort = {remote}
 ''')
+    for name, port in dashboard_ports.items():
+        path = root / f"{name}.toml"
+        config = f"""
+[webServer]
+addr = "127.0.0.1"
+port = {port}
+user = "smoke"
+password = "test-only-local-password"
+"""
+        path.write_text(path.read_text() + config)
     if a.format == "ini":
         (root / "frps.ini").write_text(f"""[common]
 bind_addr = 127.0.0.1
@@ -112,6 +169,8 @@ remote_port = {remote}
                 time.sleep(0.5)
         else:
             raise RuntimeError("Tunnel did not become ready within 30 seconds")
+        for name, port in dashboard_ports.items():
+            check_dashboard(name, port)
     finally:
         for proc in processes:
             if proc.poll() is None:

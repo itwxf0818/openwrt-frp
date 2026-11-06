@@ -128,9 +128,6 @@ jobs:
         with:
           name: candidate
           path: frp
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
       - name: Install SDK prerequisites
         run: |
           sudo apt-get update

@@ -12,13 +12,14 @@ PKG_HASH:=20e2249c2b17cb7624317b0a9a0baed06c80c547d27568d18a32c78e46d79230
 PKG_MAINTAINER:=itwxf0818
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
-PKG_BUILD_DEPENDS:=golang/host
+PKG_BUILD_DEPENDS:=golang/host node/host
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_FLAGS:=no-mips16
 
 GO_PKG:=github.com/fatedier/frp
 GO_PKG_BUILD_PKG:=github.com/fatedier/frp/cmd/frpc github.com/fatedier/frp/cmd/frps
 GO_PKG_TAGS:=frpc,frps
+GO_PKG_INSTALL_EXTRA:=^\./web/frpc/dist/ ^\./web/frps/dist/
 GO_PKG_LDFLAGS:=-s -w
 GO_PKG_LDFLAGS_X:=github.com/fatedier/frp/pkg/util/version.version=$(PKG_VERSION)
 
@@ -26,14 +27,16 @@ include $(INCLUDE_DIR)/package.mk
 # Absolute feed path works both as a separate feed and under package/frp.
 include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
 
-# FRP embeds Dashboard assets at Go compile time. Building with 'noweb' or
-# omitting dist produces a functional server without a usable web interface.
-# Node.js >= 22 and npm are required on the build host (not on the router).
-define Build/Prepare
-	$(call Build/Prepare/Default)
-	cd $(PKG_BUILD_DIR)/web && npm ci --no-audit --no-fund && npm run build --workspace frps && npm run build --workspace frpc
-	test -f $(PKG_BUILD_DIR)/web/frps/dist/index.html
-	test -f $(PKG_BUILD_DIR)/web/frpc/dist/index.html
+# Build with the SDK's host Node before the Go helper stages the embed inputs.
+FRP_NPM:=PATH="$(STAGING_DIR_HOSTPKG)/bin:$(PATH)" "$(STAGING_DIR_HOSTPKG)/bin/npm"
+
+define Build/Configure
+	cd "$(PKG_BUILD_DIR)/web" && $(FRP_NPM) ci --no-audit --no-fund && \
+		$(FRP_NPM) run build --workspace frps && \
+		$(FRP_NPM) run build --workspace frpc
+	test -s "$(PKG_BUILD_DIR)/web/frps/dist/index.html"
+	test -s "$(PKG_BUILD_DIR)/web/frpc/dist/index.html"
+	$(call GoPackage/Build/Configure)
 endef
 
 define Package/frp/default

@@ -17,5 +17,6 @@ for path in [ROOT / "frp" / "Makefile", * (ROOT / "frp" / "files").iterdir(), *(
     assert not raw.startswith(b"\xef\xbb\xbf"), f"BOM in {path}"
 makefile = (ROOT / "frp" / "Makefile").read_text()
 assert "\ninclude $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk\n" in makefile
-assert "GO_PKG_TAGS:=noweb" in makefile
+tags = next(line for line in makefile.splitlines() if line.startswith("GO_PKG_TAGS:="))
+assert "noweb" not in tags.partition(":=")[2].replace(",", " ").split()
 print(f"Static checks passed: FRP {m['PKG_VERSION']}")
