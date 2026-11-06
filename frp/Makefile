@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=frp
 PKG_VERSION:=0.72.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=https://codeload.github.com/fatedier/frp/tar.gz/v$(PKG_VERSION)?
@@ -12,19 +12,32 @@ PKG_HASH:=20e2249c2b17cb7624317b0a9a0baed06c80c547d27568d18a32c78e46d79230
 PKG_MAINTAINER:=itwxf0818
 PKG_LICENSE:=Apache-2.0
 PKG_LICENSE_FILES:=LICENSE
-PKG_BUILD_DEPENDS:=golang/host
+PKG_BUILD_DEPENDS:=golang/host node/host
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_FLAGS:=no-mips16
 
 GO_PKG:=github.com/fatedier/frp
 GO_PKG_BUILD_PKG:=github.com/fatedier/frp/cmd/frpc github.com/fatedier/frp/cmd/frps
-GO_PKG_TAGS:=noweb
+GO_PKG_TAGS:=frpc,frps
+GO_PKG_INSTALL_EXTRA:=^\./web/frpc/dist/ ^\./web/frps/dist/
 GO_PKG_LDFLAGS:=-s -w
 GO_PKG_LDFLAGS_X:=github.com/fatedier/frp/pkg/util/version.version=$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 # Absolute feed path works both as a separate feed and under package/frp.
 include $(TOPDIR)/feeds/packages/lang/golang/golang-package.mk
+
+# Build with the SDK's host Node before the Go helper stages the embed inputs.
+FRP_NPM:=PATH="$(STAGING_DIR_HOSTPKG)/bin:$(PATH)" "$(STAGING_DIR_HOSTPKG)/bin/npm"
+
+define Build/Configure
+	cd "$(PKG_BUILD_DIR)/web" && $(FRP_NPM) ci --no-audit --no-fund && \
+		$(FRP_NPM) run build --workspace frps && \
+		$(FRP_NPM) run build --workspace frpc
+	test -s "$(PKG_BUILD_DIR)/web/frps/dist/index.html"
+	test -s "$(PKG_BUILD_DIR)/web/frpc/dist/index.html"
+	$(call GoPackage/Build/Configure)
+endef
 
 define Package/frp/default
   SECTION:=net
@@ -37,13 +50,13 @@ endef
 define Package/frpc
   $(call Package/frp/default)
   USERID:=frpc:frpc
-  TITLE:=FRP client (UCI/INI/TOML, without web assets)
+  TITLE:=FRP client (UCI/INI/TOML, with web assets)
 endef
 
 define Package/frps
   $(call Package/frp/default)
   USERID:=frps:frps
-  TITLE:=FRP server (UCI/INI/TOML, without web assets)
+  TITLE:=FRP server (UCI/INI/TOML, with Dashboard)
 endef
 
 define Package/frpc/description
