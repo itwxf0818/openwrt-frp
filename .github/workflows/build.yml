@@ -71,17 +71,15 @@ jobs:
           bash tests/test_init.sh work/bin
           python3 scripts/smoke.py work/bin
           python3 scripts/smoke.py work/bin --format ini
-      - name: Cross-compile common router CPU families
+      - name: Cross-compile x86_64
         env:
           CGO_ENABLED: '0'
           GOOS: linux
           GOTOOLCHAIN: local
         run: |
           cd work/source
-          for arch in amd64 arm64 arm mipsle; do
-            mkdir -p ../cross/$arch
-            GOARCH=$arch GOARM=7 GOMIPS=softfloat go build -trimpath -tags frpc,frps -ldflags '-s -w' -o ../cross/$arch/ ./cmd/frpc ./cmd/frps
-          done
+          mkdir -p ../cross/amd64
+          GOARCH=amd64 go build -trimpath -tags frpc,frps -ldflags '-s -w' -o ../cross/amd64/ ./cmd/frpc ./cmd/frps
 
   sdk:
     needs: source
@@ -96,28 +94,8 @@ jobs:
             name: immortalwrt-x86_64
             release: snapshot
           - distribution: immortalwrt
-            target: mediatek/filogic
-            name: immortalwrt-aarch64
-            release: snapshot
-          - distribution: openwrt
-            target: x86/64
-            name: openwrt-x86_64
-            release: snapshot
-          - distribution: immortalwrt
             target: x86/64
             name: immortalwrt-25.12.2-x86_64
-            release: '25.12.2'
-          - distribution: immortalwrt
-            target: mediatek/filogic
-            name: immortalwrt-25.12.2-aarch64
-            release: '25.12.2'
-          - distribution: immortalwrt
-            target: ipq40xx/generic
-            name: immortalwrt-25.12.2-armv7
-            release: '25.12.2'
-          - distribution: immortalwrt
-            target: ramips/mt7621
-            name: immortalwrt-25.12.2-mipsel
             release: '25.12.2'
     steps:
       - uses: actions/checkout@v7

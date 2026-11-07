@@ -2,6 +2,10 @@
 
 验证日期：2026-09-17。本文记录本地验证与 SDK 集成测试结果。后续提交的构建状态见 [GitHub Actions](https://github.com/itwxf0818/openwrt-frp/actions/workflows/build.yml)。
 
+## 当前构建范围（2026-11-07）
+
+CI 保留 ImmortalWrt snapshot x86/64 和 ImmortalWrt 25.12.2 x86/64。发布包仅提供后者的 x86_64 FRPC / FRPS。下方多架构记录描述历史验证范围。
+
 ## 实机升级反馈
 
 2026-09-17，用户在 ImmortalWrt 25.12-SNAPSHOT x86/64 环境编译并升级固件，反馈刷机成功。升级前提供的 manifest 确认 `frpc 0.71.0-r3`；rootfs 中的启动脚本、兼容脚本与仓库一致，原 LuCI 客户端页面包仍包含在固件中。
