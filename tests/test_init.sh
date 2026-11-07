@@ -227,10 +227,16 @@ option dashboard_tls_mode false
 EOF
         values=(); : > "$calls"; start_service
         grep -Fxq 'webServer.port = 7500' "$generated"
-        grep -Fxq 'webServer.addr = "127.0.0.1"' "$generated"
+        grep -Fxq 'webServer.addr = "0.0.0.0"' "$generated"
         grep -Fxq 'webServer.user = "old-luci"' "$generated"
         grep -Fxq 'webServer.password = "test-only-dashboard-password"' "$generated"
         grep -Fxq 'open instance1' "$calls"
+
+        # An explicitly configured legacy address overrides its default.
+        printf '%s\n' 'option dashboard_addr 192.0.2.20' >> "$fixture"
+        values=(); start_service
+        grep -Fxq 'webServer.addr = "192.0.2.20"' "$generated"
+        sed -i '/^option dashboard_addr /d' "$fixture"
 
         # Current form values take precedence over older UCI keys.
         cat >> "$fixture" <<'EOF'
@@ -239,6 +245,7 @@ option admin_user current-luci
 EOF
         values=(); start_service
         grep -Fxq 'webServer.port = 7501' "$generated"
+        grep -Fxq 'webServer.addr = "127.0.0.1"' "$generated"
         grep -Fxq 'webServer.user = "current-luci"' "$generated"
 
         # Preserve the existing raw workaround without duplicating TOML keys.
