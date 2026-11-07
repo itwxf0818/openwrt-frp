@@ -410,55 +410,81 @@ _emit_auth_scopes() {
 	printf 'auth.additionalScopes = [%s]\n' "$_TOML_ARRAY"
 }
 
+# Keep explicit dotted TOML settings used by older installations as overrides.
+_emit_web_line() {
+	local key="$1"
+	local value="$2"
+	local type="$3"
+
+	if printf '%s\n' "$dashboard_extra" | awk -F= -v key="$key" '
+		NF > 1 {
+			gsub(/[[:space:]]/, "", $1)
+			if ($1 == key) found = 1
+		}
+		END { exit !found }
+	'; then
+		return 0
+	fi
+	_toml_line "$key" "$value" "$type"
+}
+
 _emit_admin_web_tls() {
 	local section="$1"
 	local enabled cert key
 
 	config_get enabled "$section" admin_tls_enable
+	[ -n "$enabled" ] || config_get enabled "$section" dashboard_tls_mode
 
 	[ "$(_toml_bool "$enabled")" = "true" ] || return 0
 
 	config_get cert "$section" admin_tls_cert_file
+	[ -n "$cert" ] || config_get cert "$section" dashboard_tls_cert_file
 	config_get key "$section" admin_tls_key_file
+	[ -n "$key" ] || config_get key "$section" dashboard_tls_key_file
 
-	if [ -z "$cert" ] || [ -z "$key" ]; then
-		_err "admin_tls_cert_file and admin_tls_key_file are required when admin_tls_enable is enabled"
+	if [ ! -r "$cert" ] || [ ! -r "$key" ]; then
+		_err "dashboard TLS requires readable certificate and private key files"
 		return 1
 	fi
 
-	if [ ! -r "$cert" ]; then
-		_err "admin TLS certificate file is not readable: $cert"
-		return 1
-	fi
-
-	if [ ! -r "$key" ]; then
-		_err "admin TLS private key file is not readable: $key"
-		return 1
-	fi
-
-	_toml_line webServer.tls.certFile "$cert" string
-	_toml_line webServer.tls.keyFile "$key" string
-
-	return 0
+	_emit_web_line webServer.tls.certFile "$cert" string
+	_emit_web_line webServer.tls.keyFile "$key" string
 }
 
 _emit_admin_web() {
 	local section="$1"
-	local port addr
+	# Also read by _emit_web_line through the shell's local scope.
+	local dashboard_extra port addr user password assets pprof
 
 	config_get port "$section" admin_port
+	[ -n "$port" ] || config_get port "$section" dashboard_port
 
-	# Empty or 0 means web server is disabled.
+	# Empty or 0 means the form has disabled the web server.
 	[ -n "$port" ] && [ "$port" != "0" ] || return 0
 
+	dashboard_extra="$(_emit_raw_opt "$section" _)"
+
+	# An explicit TOML table supplies the entire web configuration.
+	if printf '%s\n' "$dashboard_extra" | grep -Eq '^[[:space:]]*(\[[[:space:]]*webServer([[:space:]]*\]|[[:space:]]*\.)|webServer[[:space:]]*=[[:space:]]*\{)'; then
+		_emit_opt "$section" enable_prometheus enablePrometheus bool
+		return 0
+	fi
+
 	config_get addr "$section" admin_addr
-	_toml_line webServer.addr "${addr:-127.0.0.1}" string
-	_toml_line webServer.port "$port" port
-	_emit_opt "$section" admin_user webServer.user string
-	_emit_opt "$section" admin_pwd webServer.password string
+	[ -n "$addr" ] || config_get addr "$section" dashboard_addr
+	config_get user "$section" admin_user
+	[ -n "$user" ] || config_get user "$section" dashboard_user
+	config_get password "$section" admin_pwd
+	[ -n "$password" ] || config_get password "$section" dashboard_pwd
+	config_get assets "$section" assets_dir
+	config_get pprof "$section" pprof_enable
+	_emit_web_line webServer.addr "${addr:-127.0.0.1}" string
+	_emit_web_line webServer.port "$port" port
+	_emit_web_line webServer.user "$user" string
+	_emit_web_line webServer.password "$password" string
 	_emit_admin_web_tls "$section" || return 1
-	_emit_opt "$section" assets_dir webServer.assetsDir string
-	_emit_opt "$section" pprof_enable webServer.pprofEnable bool
+	_emit_web_line webServer.assetsDir "$assets" string
+	_emit_web_line webServer.pprofEnable "$pprof" bool
 	_emit_opt "$section" enable_prometheus enablePrometheus bool
 
 	return 0

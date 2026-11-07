@@ -9,12 +9,7 @@ import shutil
 import zipfile
 from upstream import metadata
 
-TARGETS = {
-    "x86/64": "x86_64",
-    "mediatek/filogic": "aarch64_cortex-a53",
-    "ipq40xx/generic": "arm_cortex-a7_neon-vfpv4",
-    "ramips/mt7621": "mipsel_24kc",
-}
+TARGETS = {"x86/64": "x86_64"}
 CHANNEL = "25.12.2"
 
 

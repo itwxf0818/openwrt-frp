@@ -1,5 +1,7 @@
 # 配置说明
 
+旧版 LuCI 的 FRPS 仪表板字段 `dashboard_*` 和新版的 `admin_*` 都可用于生成 TOML。同一项同时填写时，优先使用新版字段。仪表板地址未填写时默认监听路由器本机（`127.0.0.1`）。若以前在“其他设置”写过 `webServer.port` 或 `webServer.addr`，这些值优先于表单。要让表单控制端口，可移除那一条手写端口设置。有局域网访问需求时，可将监听地址设为路由器的局域网 IP。
+
 ## 已有 LuCI / INI 配置
 
 使用当前 ImmortalWrt master 官方 LuCI（`luci-app-frpc` / `luci-app-frps`）时，保留原有软件包选择和 `/etc/config/frpc` / `/etc/config/frps`。启动脚本默认读取 UCI，生成 `/var/etc/frpc.toml` / `/var/etc/frps.toml`，通过上游 FRP 校验后启动。页面中的常用设置无需手工转换。
