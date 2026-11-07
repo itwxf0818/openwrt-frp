@@ -218,6 +218,45 @@ EOF
         grep -Fxq 'bindPort = 7000' "$generated"
         grep -Fxq 'maxPortsPerClient = 4' "$generated"
         grep -Fxq 'transport.tls.force = true' "$generated"
+        cp "$fixture" "$tmp/frps-base.uci"
+        cat >> "$fixture" <<'EOF'
+option dashboard_port 7500
+option dashboard_user old-luci
+option dashboard_pwd test-only-dashboard-password
+option dashboard_tls_mode false
+EOF
+        values=(); : > "$calls"; start_service
+        grep -Fxq 'webServer.port = 7500' "$generated"
+        grep -Fxq 'webServer.addr = "127.0.0.1"' "$generated"
+        grep -Fxq 'webServer.user = "old-luci"' "$generated"
+        grep -Fxq 'webServer.password = "test-only-dashboard-password"' "$generated"
+        grep -Fxq 'open instance1' "$calls"
+
+        # Current form values take precedence over older UCI keys.
+        cat >> "$fixture" <<'EOF'
+option admin_port 7501
+option admin_user current-luci
+EOF
+        values=(); start_service
+        grep -Fxq 'webServer.port = 7501' "$generated"
+        grep -Fxq 'webServer.user = "current-luci"' "$generated"
+
+        # Preserve the existing raw workaround without duplicating TOML keys.
+        cat >> "$fixture" <<'EOF'
+list _ 'webServer.port = 7502'
+list _ 'webServer.addr = "192.0.2.10"'
+EOF
+        values=(); start_service
+        [[ $(grep -c '^webServer.port =' "$generated") -eq 1 ]]
+        [[ $(grep -c '^webServer.addr =' "$generated") -eq 1 ]]
+        grep -Fxq 'webServer.port = 7502' "$generated"
+        grep -Fxq 'webServer.addr = "192.0.2.10"' "$generated"
+
+        cp "$tmp/frps-base.uci" "$fixture"
+        printf '%s\n' 'option dashboard_port 7500' 'option admin_port 0' >> "$fixture"
+        values=(); start_service
+        if grep -q '^webServer\.' "$generated"; then exit 1; fi
+        cp "$tmp/frps-base.uci" "$fixture"
     fi
     # Invalid modern numeric values must not launch a process.
     if [[ $NAME == frpc ]]; then key=server_port; else key=bind_port; fi
