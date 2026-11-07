@@ -22,7 +22,10 @@ a.output.mkdir(parents=True, exist_ok=True)
 attempts = 3 if a.release == "snapshot" else 1
 with TemporaryDirectory(dir=a.output) as temporary:
     for attempt in range(1, attempts + 1):
-        manifest = fetch(base + "/sha256sums").decode()
+        manifest_url = base + "/sha256sums"
+        if attempt > 1:
+            manifest_url += f"?refresh={time.time_ns()}"
+        manifest = fetch(manifest_url).decode()
         matches = re.findall(rf"^([a-f0-9]{{64}})\s+\*?({a.distribution}-sdk-[^/\s]+\.tar\.(?:zst|xz))$", manifest, re.M)
         if len(matches) != 1:
             raise SystemExit("Expected exactly one SDK in the official manifest")
@@ -30,10 +33,14 @@ with TemporaryDirectory(dir=a.output) as temporary:
         url = base + "/" + name
         print(f"Downloading SDK (attempt {attempt}/{attempts}): {url}", flush=True)
         candidate = Path(temporary) / name
-        actual = fetch(url, candidate)
+        # Snapshot filenames are reused. On retry, key the archive request to
+        # the refreshed manifest digest so an old cache entry can be bypassed.
+        download_url = f"{url}?sha256={expected}&refresh={time.time_ns()}" if attempt > 1 else url
+        actual = fetch(download_url, candidate)
         if actual == expected:
             candidate.replace(a.output / name)
             break
+        print(f"SDK SHA256 mismatch: expected {expected}, received {actual}", flush=True)
         candidate.unlink()
         if attempt == attempts:
             raise SystemExit("SDK hash mismatch after verification; refusing to use the archive.")
