@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 import re
+from tempfile import TemporaryDirectory
+import time
 from upstream import fetch
 
 p = argparse.ArgumentParser()
@@ -16,15 +18,27 @@ if a.release != "snapshot" and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", a.rel
     p.error("release must be snapshot or a stable version such as 25.12.2")
 channel = "snapshots" if a.release == "snapshot" else f"releases/{a.release}"
 base = f"https://downloads.{a.distribution}.org/{channel}/targets/{a.target}"
-manifest = fetch(base + "/sha256sums").decode()
-matches = re.findall(rf"^([a-f0-9]{{64}})\s+\*?({a.distribution}-sdk-[^/\s]+\.tar\.(?:zst|xz))$", manifest, re.M)
-if len(matches) != 1:
-    raise SystemExit("Expected exactly one SDK in the official manifest")
-expected, name = matches[0]
 a.output.mkdir(parents=True, exist_ok=True)
-actual = fetch(base + "/" + name, a.output / name)
-if actual != expected:
-    raise SystemExit("SDK hash mismatch; snapshot may have rotated. Rerun the workflow.")
-(a.output / "sdk-provenance.json").write_text(json.dumps({"url": base + "/" + name, "sha256": actual}, indent=2) + "\n")
+attempts = 3 if a.release == "snapshot" else 1
+with TemporaryDirectory(dir=a.output) as temporary:
+    for attempt in range(1, attempts + 1):
+        manifest = fetch(base + "/sha256sums").decode()
+        matches = re.findall(rf"^([a-f0-9]{{64}})\s+\*?({a.distribution}-sdk-[^/\s]+\.tar\.(?:zst|xz))$", manifest, re.M)
+        if len(matches) != 1:
+            raise SystemExit("Expected exactly one SDK in the official manifest")
+        expected, name = matches[0]
+        url = base + "/" + name
+        print(f"Downloading SDK (attempt {attempt}/{attempts}): {url}", flush=True)
+        candidate = Path(temporary) / name
+        actual = fetch(url, candidate)
+        if actual == expected:
+            candidate.replace(a.output / name)
+            break
+        candidate.unlink()
+        if attempt == attempts:
+            raise SystemExit("SDK hash mismatch after verification; refusing to use the archive.")
+        print("Snapshot SDK hash mismatch; refreshing the official manifest before retrying.", flush=True)
+        time.sleep(5)
+(a.output / "sdk-provenance.json").write_text(json.dumps({"url": url, "sha256": actual}, indent=2) + "\n")
 (a.output / "sha256sums").write_text(manifest)
 print(a.output / name)
