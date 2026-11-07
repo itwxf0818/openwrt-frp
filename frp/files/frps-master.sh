@@ -454,10 +454,13 @@ _emit_admin_web_tls() {
 _emit_admin_web() {
 	local section="$1"
 	# Also read by _emit_web_line through the shell's local scope.
-	local dashboard_extra port addr user password assets pprof
+	local dashboard_extra port addr user password assets pprof default_addr=127.0.0.1
 
 	config_get port "$section" admin_port
-	[ -n "$port" ] || config_get port "$section" dashboard_port
+	if [ -z "$port" ]; then
+		config_get port "$section" dashboard_port
+		default_addr=0.0.0.0
+	fi
 
 	# Empty or 0 means the form has disabled the web server.
 	[ -n "$port" ] && [ "$port" != "0" ] || return 0
@@ -478,7 +481,7 @@ _emit_admin_web() {
 	[ -n "$password" ] || config_get password "$section" dashboard_pwd
 	config_get assets "$section" assets_dir
 	config_get pprof "$section" pprof_enable
-	_emit_web_line webServer.addr "${addr:-127.0.0.1}" string
+	_emit_web_line webServer.addr "${addr:-$default_addr}" string
 	_emit_web_line webServer.port "$port" port
 	_emit_web_line webServer.user "$user" string
 	_emit_web_line webServer.password "$password" string
